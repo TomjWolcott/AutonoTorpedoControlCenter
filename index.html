@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@v0.180.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@v0.180.0/examples/jsm/"
+        }
+    }
+    </script>
+    <title>AutonoTorpedo Control Center V1</title>
+    <style>
+        .accordion {
+            margin-bottom: 10px;
+        }
+
+        .code-block {
+            background: black;
+            padding: 5px 10px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="d-flex flex-column m-3">
+        <h1>AutonoTorpedo Control Center V1</h1>
+        <h4 class="m-2"><b>Status:</b> 
+            <span class="state-based show-not-connected badge text-bg-secondary">Not Connected</span>
+            <span class="state-based show-setup badge text-bg-primary">Setup</span>
+            <span class="state-based show-teleop badge text-bg-success">Teleop</span>
+            <span class="state-based show-autonomy badge text-bg-success">Autonomy</span>
+        </h4>
+        <hr>
+        <div class="row flex flex-row">
+            <div class="col flex flex-column">
+                <div class="accordion">
+                    <div class="accordion-item">
+                        <h3 class="accordion-header">
+                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#accordion-actions" aria-expanded="true" aria-controls="accordion-actions">
+                            Actions
+                        </button>
+                        </h3>
+                        <div id="accordion-actions" class="accordion-collapse collapse show" data-bs-parent="#accordionExample">
+                        <div class="accordion-body">
+                            <button id="connect-btn" type="button" class="state-based show-not-connected btn btn-primary">Connect</button>
+                            <button type="button" class="state-based show-setup btn btn-primary">Calibrate Magnetometer</button>
+                        </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col flex flex-column">
+                <div class="accordion">
+                    <div class="accordion-item">
+                        <h3 class="accordion-header">
+                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#accordion-info" aria-expanded="true" aria-controls="accordion-info">
+                            Info
+                        </button>
+                        </h3>
+                        <div id="accordion-info" class="accordion-collapse collapse show" data-bs-parent="#accordionExample">
+                        <div id="accordion-info-area" class="accordion-body overflow-hidden">
+                            <div id="3d-viewer" class="border position-relative" style="width: fit-content">
+                                <div class="btn-group position-absolute" role="group" aria-label="Basic radio toggle button group" style="top: 3%; left: 3%; z-index: 10">
+                                    <input type="radio" class="btn-check" name="btnradio" id="viewer-AT-centered-btn" autocomplete="off" checked>
+                                    <label class="btn btn-outline-primary" for="viewer-AT-centered-btn">MagAcc</label>
+
+                                    <input type="radio" class="btn-check" name="btnradio" id="viewer-gravMag-centered-btn" autocomplete="off">
+                                    <label class="btn btn-outline-primary" for="viewer-gravMag-centered-btn">AT</label>
+                                </div>
+                            </div>
+                        </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="accordion">
+                    <div class="accordion-item">
+                        <h3 class="accordion-header">
+                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#accordion-log" aria-expanded="true" aria-controls="accordion-log">
+                            Log
+                        </button>
+                        </h3>
+                        <div id="accordion-log" class="accordion-collapse collapse show" data-bs-parent="#accordionExample">
+                        <div class="d-flex flex-column accordion-body">
+                            <div class="code-block"><code id="log" style="color: white"></code></div>
+                        </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+    <script src="index.js"></script>
+    <script src="3d_viewer_setup.js" type="module"></script>
+    <script src="event_listener.js"></script>
+</body>
+</html>
