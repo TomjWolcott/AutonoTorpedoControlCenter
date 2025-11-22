@@ -4,3 +4,5 @@ You'll need to locally host with https in order to access `USB` and `Serial` web
 ```
 serve --ssl-cert config/create-cert.pem --ssl-key config/create-cert-key.pem  -l 80
 ```
+
+This will serve the page at `https://localhost:80`

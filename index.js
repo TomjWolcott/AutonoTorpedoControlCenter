@@ -4,12 +4,16 @@ const TELEOP = "teleop";
 const AUTONOMY = "autonomy";
 
 controlCenterState = {
-    state: NOT_CONNECTED
+    state: NOT_CONNECTED,
+    port: null,
+    msConvert: 0
 };
 
-showHideHtmlStateClasses(controlCenterState.state);
+setState(NOT_CONNECTED);
 
-function showHideHtmlStateClasses(newState) {
+function setState(newState) {
+    controlCenterState.state = newState;
+
     for (const object of document.getElementsByClassName("state-based")) {
         if (object.classList.contains(`show-${newState}`)) {
             object.style.display = "";
@@ -19,4 +23,4 @@ function showHideHtmlStateClasses(newState) {
     }
 }
 
-document.getElementById("log").innerHTML = "ABC<br /> asdhfoisdhfia<br /> asoudfgoaudf";
+const domLog = document.getElementById("log");

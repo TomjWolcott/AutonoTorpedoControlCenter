@@ -44,26 +44,47 @@ function threejs_setup() {
     const axesHelperRev = new THREE.AxesHelper( -5 );
     scene.add( axesHelperRev );
 
-    let dir = new THREE.Vector3(1, 1, 1);
-    dir.normalize();
-    const arrowHelper = new THREE.ArrowHelper(dir, new THREE.Vector3(0, 0, 0), 1, 0xffffff );
-    scene.add( arrowHelper );
-
+    // let dir = new THREE.Vector3(1, 1, 1);
+    // dir.normalize();
+    // const arrowHelper = new THREE.ArrowHelper(dir, new THREE.Vector3(0, 0, 0), 1, 0xffffff );
+    // scene.add( arrowHelper );
+    var AT;
     loader.load( 'assets/AutonomousTorpedo.glb', function ( gltf ) {
-        console.log(gltf.scene.scale)
-        gltf.scene.scale.set(10, 10, 10);
-        console.log(gltf.scene.scale)
+        AT = gltf.scene;
+        gltf.scene.scale.set(20, 20, 20);
         scene.add( gltf.scene );
     }, undefined, function ( error ) {
         console.error( error );
     } );
 
-    camera.position.set( 0, 2, 1 );
+    camera.position.set( 2, 1, 2 );
     controls.update();
 
     function animate() {
         controls.update();
         renderer.render( scene, camera );
+
+        if (typeof AT != "undefined") {
+            AT.setRotationFromEuler(new THREE.Euler( 0, 0, 0, 'XYZ' ));
+
+            let magv = new THREE.Vector3(-mag[0], mag[2], mag[1]);
+            let accv = new THREE.Vector3(-acc[1], acc[2], acc[0]);
+
+            magv.normalize();
+            accv.normalize();
+
+            let y_rot = Math.atan2(accv.x, accv.y);
+            let x_rot = Math.atan2(accv.z, accv.y);
+
+            magv = magv.applyAxisAngle( new THREE.Vector3(0, 0, 1), -y_rot);
+            magv = magv.applyAxisAngle( new THREE.Vector3(1, 0, 0), -x_rot);
+
+            let z_rot = Math.atan2(magv.z, magv.x);
+
+            AT.rotateY(z_rot);
+            AT.rotateZ(y_rot);
+            AT.rotateX(x_rot);
+        }
     }
     renderer.setAnimationLoop( animate );
 }
