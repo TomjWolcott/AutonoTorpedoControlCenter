@@ -6,7 +6,20 @@ const AUTONOMY = "autonomy";
 controlCenterState = {
     state: NOT_CONNECTED,
     port: null,
-    msConvert: 0
+    msConvert: 0,
+    configurations: {},
+    data: {
+        t: [],
+        magX: [],
+        magY: [],
+        magZ: [],
+        accX: [],
+        accY: [],
+        accZ: [],
+        gyrX: [],
+        gyrY: [],
+        gyrZ: [],
+    }
 };
 
 setState(NOT_CONNECTED);

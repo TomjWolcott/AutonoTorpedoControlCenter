@@ -96,6 +96,6 @@ function setScreenSize() {
     // const sceneSize = infoAccordionInfo.offsetWidth;
     renderer.setSize( sceneSize, sceneSize );
 
-    renderer.domElement.style.width = "100%";
-    renderer.domElement.style.height = "auto";
+    renderer.domElement.style.width = "600px";
+    renderer.domElement.style.height = "600px";
 }

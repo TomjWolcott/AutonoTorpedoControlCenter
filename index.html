@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <script src="https://cdn.plot.ly/plotly-3.3.0.min.js" charset="utf-8"></script>
     <script type="importmap">
     {
         "imports": {
@@ -43,12 +44,57 @@
             border-bottom: 1px solid white;
             border-radius: 0 0 0 10px;
             padding: 5px 0 15px 15px;
-            font-family: monospace;
+            align-items: flex-start;
+            /* font-family: monospace; */
+        }
+
+        .configInput {
+            padding:0px;
+            margin: 2px 4px;
+            width: 80px;
+            text-align: center;
+            border: 0;
+            border-radius: 5px;
+        }
+
+        .configInput::-webkit-outer-spin-button,
+        .configInput::-webkit-inner-spin-button {
+            /* display: none; <- Crashes Chrome on hover */
+            -webkit-appearance: none;
+            margin: 0; /* <-- Apparently some margin are still there even though it's hidden */
+        }
+
+        .configInput[type=number] {
+            -moz-appearance:textfield; /* Firefox */
+        }
+
+        th:first-child, td:first-child {
+            position:sticky;
+            left:0px;
+        }
+
+        tr td:first-of-type {
+            padding-left: 5px;
+        }
+
+        .firstRow > * {
+            padding-top: 5px;
+        }
+
+        table .configInput {
+            width: 60px;
+        }
+
+        table th {
+            border-right: 1px solid white;
+            border-style: double;
+            padding-right: 5px;
         }
     </style>
+    <script type="module" src="components.js"></script>
 </head>
-<body>
-    <div class="d-flex flex-column m-3">
+<body style="height: 100vh; margin: 0; padding: 0; overflow: hidden;">
+    <div class="h-100 p-3 m-0 d-flex flex-column">
         <h1>AutonoTorpedo Control Center V1</h1>
         <h4 class="m-2"><b>Status:</b> 
             <span class="state-based show-not-connected badge text-bg-secondary">Not Connected</span>
@@ -56,9 +102,9 @@
             <span class="state-based show-active badge text-bg-success">Active</span>
         </h4>
         <hr>
-        <div class="row flex flex-row">
-            <div class="col flex flex-column">
-                <div class="accordion">
+        <div class="row flex flex-row h-100">
+            <div class="col flex flex-column overflow-scroll h-100">
+                <div class="accordion"> 
                     <div class="accordion-item">
                         <h3 class="accordion-header">
                         <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#accordion-actions" aria-expanded="true" aria-controls="accordion-actions">
@@ -69,11 +115,158 @@
                         <div class="accordion-body flex flex-column">
                             <button id="connect-btn" type="button" class="state-based show-not-connected btn btn-primary">Connect</button>
                             <button id="send-ping-btn" type="button" class="state-based show-setup btn btn-primary">Send Ping</button>
-                            <button id="calibrate-mag-btn" type="button" class="state-based show-setup btn btn-primary">Calibrate Magnetometer</button>
+                            <!-- <button id="calibrate-mag-btn" type="button" class="state-based show-setup btn btn-primary">Calibrate Magnetometer</button> -->
                         </div>
                         </div>
                     </div>
-                </div>
+                </div> <!-- ACTIONS -->
+                <div class="accordion">
+                    <div class="accordion-item">
+                        <h3 class="accordion-header">
+                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#accordion-setCal" aria-expanded="true" aria-controls="accordion-setCal">
+                            Configuration
+                        </button>
+                        </h3>
+                        <div id="accordion-setCal" class="accordion-collapse collapse show" data-bs-parent="#accordionExample">
+                        <div class="accordion-body flex flex-column">
+                            <div class="flex flex-row">
+                                <div class="input-group mb-3">
+                                    <input class="form-control" list="configOptions" id="configOptionsDatalist" placeholder="Enter config name">
+                                    <datalist id="configOptions">
+                                        <option value="Default Config">
+                                    </datalist>
+                                    <button id="btnLoadConfig" disabled type="button" class="btn btn-outline-primary">Load</button>
+                                    <button id="btnSaveConfig" disabled type="button" class="btn btn-outline-primary">Save</button>
+                                    <button id="btnDeleteConfig" disabled type="button" class="btn btn-outline-danger">Delete</button>
+                                </div>
+                            </div>
+                            <hr>
+                            <select class="form-select" id="configSettingsDropdown" aria-label="Configuration Settings Dropdown">
+                                <option value="magConfigSettings">Magnetometer: AK09940A</option>
+                                <option value="imuConfigSettings">IMU: ICM42688P</option>
+                                <option value="pidConfigSettings">PIDs</option>
+                                <option value="localizationConfigSettings">Localization</option>
+                                <option value="motorsConfigSettings">Motors</option>
+                            </select>
+                            <div style="padding-left: 10px;">
+                                <div class="dataGroup configDataGroup" id="magConfigSettings">
+                                     <!--<input class="form-control" list="magCalOptions" id="magCalDatalist" placeholder="Select Calibration...">
+                                    <datalist id="magCalOptions">
+                                        <option default value="Nov 27, 11:26:34 Calibration">
+                                        <option value="Nov 28, 16:26:34 @ UMD">
+                                    </datalist>
+                                    <br>-->
+                                    <div>Magnetometer Bias: [
+                                        <range-input class="config-input" id="mag-bias-0" min="-100000" max="100000" fixed="0" width="70px" delta="10" default="0"></range-input>μT, 
+                                        <range-input class="config-input" id="mag-bias-1" min="-100000" max="100000" fixed="0" width="70px" delta="10" default="0"></range-input>μT, 
+                                        <range-input class="config-input" id="mag-bias-2" min="-100000" max="100000" fixed="0" width="70px" delta="10" default="0"></range-input>μT
+                                    ]</div>
+                                    <div>Magnetometer Scale: [
+                                        <range-input class="config-input" id="mag-scale-0" min="-10" max="10" fixed="3" width="60px"></range-input>, 
+                                        <range-input class="config-input" id="mag-scale-1" min="-10" max="10" fixed="3" width="60px"></range-input>, 
+                                        <range-input class="config-input" id="mag-scale-2" min="-10" max="10" fixed="3" width="60px"></range-input>
+                                    ]</div>
+                                    <br>
+                                    <button id="startMagCalBtn" type="button" class="btn btn-primary">Run Calibration Routine</button>
+                                </div>
+                                <div class="dataGroup configDataGroup" id="imuConfigSettings">
+                                    <!--<input class="form-control" list="imuCalOptions" id="imuCalDatalist" placeholder="Select Calibration...">
+                                    <datalist id="imuCalOptions">
+                                        <option default value="Nov 27, 11:26:34 Calibration">
+                                        <option value="Nov 28, 16:26:34 @ UMD">
+                                    </datalist>
+                                    <br>-->
+                                    <div>Accelerometer Bias: [
+                                        <range-input class="config-input" id="imu-accBias-0" min="-10" max="10" fixed="3" width="60px" default="0"></range-input>g, 
+                                        <range-input class="config-input" id="imu-accBias-1" min="-10" max="10" fixed="3" width="60px" default="0"></range-input>g, 
+                                        <range-input class="config-input" id="imu-accBias-2" min="-10" max="10" fixed="3" width="60px" default="0"></range-input>g
+                                    ]</div>
+                                    <div>Accelerometer Scale: [
+                                        <range-input class="config-input" id="imu-accScale-0" min="-10" max="10" fixed="3" width="60px"></range-input>, 
+                                        <range-input class="config-input" id="imu-accScale-1" min="-10" max="10" fixed="3" width="60px"></range-input>, 
+                                        <range-input class="config-input" id="imu-accScale-2" min="-10" max="10" fixed="3" width="60px"></range-input>
+                                    ]</div>
+                                    <div>Gyroscope Bias: [
+                                        <range-input class="config-input" id="imu-gyrBias-0" min="-10" max="10" fixed="3" width="60px" default="0"></range-input>dps, 
+                                        <range-input class="config-input" id="imu-gyrBias-1" min="-10" max="10" fixed="3" width="60px" default="0"></range-input>dps, 
+                                        <range-input class="config-input" id="imu-gyrBias-2" min="-10" max="10" fixed="3" width="60px" default="0"></range-input>dps
+                                    ]</div>
+                                    <br>
+                                    <button id="startAccCalBtn" type="button" class="btn btn-primary mb-3">Run Accelerometer Calibration Routine</button>
+                                    <button id="startGyrCalBtn" type="button" class="btn btn-primary">Run Gyroscope Calibration Routine</button>
+                                </div>
+                                <div class="dataGroup configDataGroup" id="localizationConfigSettings">
+                                    <div>Madgwick Filter β: <range-input class="config-input" id="localization-madgwickBeta" min="0" max="10" fixed="4" width="80px"></range-input></div>
+                                </div>
+                                <div class="dataGroup configDataGroup" id="motorsConfigSettings">
+                                    <div>Maximum motor input: <range-input class="config-input" id="motors-maximumDuty" min="0" max="1" fixed="3" width="60px" default="1"></range-input></div>
+                                    <div>Motor input scalar: <range-input class="config-input" id="motors-dutyScaler" min="0" max="1" fixed="3" width="60px" default="1"></range-input></div>
+                                </div>
+                                <div class="dataGroup configDataGroup" id="pidConfigSettings">
+                                     <!--<div class="input-group mb-3 flex flex-row">
+                                        <input class="form-control" list="pidOptions" id="pidDatalist" placeholder="Select PID setting...">
+                                        <datalist id="pidOptions">
+                                            <option default value="Nov 27, 11:26:34 PID">
+                                            <option value="Nov 28, 16:26:34 ok-ish">
+                                        </datalist>
+                                        <button id="btnUpdateConfig" type="button" class="btn btn-outline-secondary">Save PIDs</button>
+                                    </div>-->
+                                    <table>
+                                        <thead>
+                                            <tr style="border-bottom: 1px solid white">
+                                                <th scope="col">PID</th>
+                                                <td scope="col" style="text-align: center;">Roll</td>
+                                                <td scope="col" style="text-align: center;">Pitch</td>
+                                                <td scope="col" style="text-align: center;">Yaw</td>
+                                                <td scope="col" style="text-align: center;">Depth</td>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr class="firstRow">
+                                                <th scope="row">Proportional</th>
+                                                <td><range-input class="config-input" id="pid-roll-proportional" min="0" max="2" fixed="2" width="60px"></range-input></th>
+                                                <td><range-input class="config-input" id="pid-pitch-proportional" min="0" max="2" fixed="2" width="60px"></range-input></th>
+                                                <td><range-input class="config-input" id="pid-yaw-proportional" min="0" max="2" fixed="2" width="60px"></range-input></th>
+                                                <td><range-input class="config-input" id="pid-depth-proportional" min="0" max="2" fixed="2" width="60px"></range-input></th>
+                                            </tr>
+                                            <tr>
+                                                <th scope="row">Integral</th>
+                                                <td><range-input class="config-input" id="pid-roll-integral" min="0" max="2" fixed="2" width="60px"></range-input></th>
+                                                <td><range-input class="config-input" id="pid-pitch-integral" min="0" max="2" fixed="2" width="60px"></range-input></th>
+                                                <td><range-input class="config-input" id="pid-yaw-integral" min="0" max="2" fixed="2" width="60px"></range-input></th>
+                                                <td><range-input class="config-input" id="pid-depth-integral" min="0" max="2" fixed="2" width="60px"></range-input></th>
+                                            </tr>
+                                            <tr>
+                                                <th scope="row">Derivative</th>
+                                                <td><range-input class="config-input" id="pid-roll-derivative" min="0" max="2" fixed="2" width="60px"></range-input></th>
+                                                <td><range-input class="config-input" id="pid-pitch-derivative" min="0" max="2" fixed="2" width="60px"></range-input></th>
+                                                <td><range-input class="config-input" id="pid-yaw-derivative" min="0" max="2" fixed="2" width="60px"></range-input></th>
+                                                <td><range-input class="config-input" id="pid-depth-derivative" min="0" max="2" fixed="2" width="60px"></range-input></th>
+                                            </tr>
+                                            <tr>
+                                                <th scope="row">Value Minimum</th>
+                                                <td><range-input class="config-input" id="pid-roll-min" min="-10" max="10" fixed="2" width="60px"></range-input></th>
+                                                <td><range-input class="config-input" id="pid-pitch-min" min="-10" max="10" fixed="2" width="60px"></range-input></th>
+                                                <td><range-input class="config-input" id="pid-yaw-min" min="-10" max="10" fixed="2" width="60px"></range-input></th>
+                                                <td><range-input class="config-input" id="pid-depth-min" min="-10" max="10" fixed="2" width="60px"></range-input></th>
+                                            </tr>
+                                            <tr>
+                                                <th scope="row">Value Maximum</th>
+                                                <td><range-input class="config-input" id="pid-roll-max" min="-10" max="10" fixed="2" width="60px"></range-input></th>
+                                                <td><range-input class="config-input" id="pid-pitch-max" min="-10" max="10" fixed="2" width="60px"></range-input></th>
+                                                <td><range-input class="config-input" id="pid-yaw-max" min="-10" max="10" fixed="2" width="60px"></range-input></th>
+                                                <td><range-input class="config-input" id="pid-depth-max" min="-10" max="10" fixed="2" width="60px"></range-input></th>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <hr>
+                            <button id="btnUploadConfig" type="button" class="btn btn-primary">Upload Config</button>
+                        </div>
+                        </div>
+                    </div>
+                </div> <!-- CONFIGURATION -->
                 <div class="accordion state-based show-setup show-active">
                     <div class="accordion-item">
                         <h3 class="accordion-header">
@@ -83,13 +276,65 @@
                         </h3>
                         <div id="accordion-log" class="accordion-collapse collapse show" data-bs-parent="#accordionExample">
                             <div class="d-flex flex-column accordion-body">
-                                <div class="code-block" style="max-height: 300px; overflow: scroll;"><code id="log"></code></div>
+                                <div class="code-block" style="max-height: 300px; overflow: scroll;"><code id="log" class="d-flex flex-column"></code></div>
                             </div>
                         </div>
                     </div>
-                </div>
+                </div> <!-- LOG -->
+                <div style="height: 500px"></div>
             </div>
-            <div class="col flex flex-column">
+            <div class="col flex flex-column overflow-scroll h-100">
+                <div class="accordion state-based show-setup show-active">
+                    <div class="accordion-item">
+                        <h3 class="accordion-header">
+                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#accordion-plot" aria-expanded="true" aria-controls="accordion-plot">
+                            Plotting
+                        </button>
+                        </h3>
+                        <div id="accordion-plot" class="accordion-collapse collapse show" data-bs-parent="#accordionExample">
+                        <!-- The user selects a plot type, then assigns the axes to the available data -->
+                        <div id="accordion-plot-area" class="accordion-body overflow-hidden">
+                            <select class="form-select" id="plotDimDropdown" aria-label="Plot Dim Dropdown">
+                                <option selected value="none">No plot</option>
+                                <option value="2d">2D Plot</option>
+                                <option value="3d">3D Plot</option>
+                                <!-- <option value="4d">4D Plot</option> -->
+                            </select>
+                            <div id="plot-area" style="width:100%;height:400px; margin: 10px 0;"></div>
+                            <div class="row mb-3 plot-axes-container">
+                                <div class="col">
+                                    <label for="plot-axis-1" class="sr-only">x-axis</label>
+                                    <select class="form-select plot-axis-options" id="plot-axis-1">
+                                        <option selected disabled value="">Select data for x-axis</option>
+                                    </select>
+                                </div>
+                                <div class="col">
+                                    <label for="plot-axis-2" class="sr-only">y-axis</label>
+                                    <select class="form-select plot-axis-options" id="plot-axis-2">
+                                        <option selected disabled value="">Select data for y-axis</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="row mb-3 plot-axis-3-container plot-axes-container">
+                                <div class="col">
+                                    <label for="plot-axis-3" class="sr-only">z-axis</label>
+                                    <select class="form-select plot-axis-options" id="plot-axis-3">
+                                        <option selected disabled value="">Select data for z-axis</option>
+                                    </select>
+                                </div>
+                                <div class="col plot-axis-4-container">
+                                    <label for="plot-axis-4" class="sr-only">color-axis</label>
+                                    <select class="form-select plot-axis-options" id="plot-axis-4">
+                                        <option selected disabled value="">Select data for color-axis</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <!-- <button type="button" class="btn btn-primary" id="btn-export-selection-csv">Export selection to CSV</button> -->
+                            <button type="button" class="btn btn-primary" id="btn-export-all-csv">Export all data to CSV</button>
+                        </div>
+                        </div>
+                    </div>
+                </div> <!-- PLOT -->
                 <div class="accordion state-based show-setup show-active">
                     <div class="accordion-item">
                         <h3 class="accordion-header">
@@ -99,42 +344,73 @@
                         </h3>
                         <div id="accordion-info" class="accordion-collapse collapse show" data-bs-parent="#accordionExample">
                         <div id="accordion-info-area" class="accordion-body overflow-hidden">
+                            <b>Info:</b>
+                            <div class="dataGroup" id="infoCollapse">
+                                <div>Data taken timestamp: <range-input type="display" id="dataTakenTimestampInput" width="160px"></range-input></div>
+                                <div>Data receive rate: <range-input type="display" id="dataReceiveRateInput" width="70px"></range-input>Hz</div>
+                                <div>Data refresh rate: <range-input type="display" id="dataRefreshRateInput" width="70px"></range-input>Hz</div>
+                                <div>Firmware version: <range-input type="display" id="firmwareVersionInput" width="70px"></range-input></div>
+
+                            </div>
                             <b>IMU/Magnetometer Data: </b>
                             <div class="dataGroup" id="imuMagCollapse">
-                                <div>Magnetometer: <span id="magData">[---,---nT, ---,---nT, ---,---nT]</span></div>
-                                <div>Acceleration: <span id="accData">[--.----g, --.----g, --.----g]</span></div>
-                                <hr>
-                                <div id="3d-viewer" class="border position-relative" style="width: fit-content">
-                                    <!--!Font Awesome Free v7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2025 Fonticons, Inc.-->
-                                    <!-- <button type="button" class="btn btn-outline-primary position-absolute" style="top: 3%; right: 3%; z-index: 10">
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640">
-                                            <path d="M259.1 73.5C262.1 58.7 275.2 48 290.4 48L350.2 48C365.4 48 378.5 58.7 381.5 73.5L396 143.5C410.1 149.5 423.3 157.2 435.3 166.3L503.1 143.8C517.5 139 533.3 145 540.9 158.2L570.8 210C578.4 223.2 575.7 239.8 564.3 249.9L511 297.3C511.9 304.7 512.3 312.3 512.3 320C512.3 327.7 511.8 335.3 511 342.7L564.4 390.2C575.8 400.3 578.4 417 570.9 430.1L541 481.9C533.4 495 517.6 501.1 503.2 496.3L435.4 473.8C423.3 482.9 410.1 490.5 396.1 496.6L381.7 566.5C378.6 581.4 365.5 592 350.4 592L290.6 592C275.4 592 262.3 581.3 259.3 566.5L244.9 496.6C230.8 490.6 217.7 482.9 205.6 473.8L137.5 496.3C123.1 501.1 107.3 495.1 99.7 481.9L69.8 430.1C62.2 416.9 64.9 400.3 76.3 390.2L129.7 342.7C128.8 335.3 128.4 327.7 128.4 320C128.4 312.3 128.9 304.7 129.7 297.3L76.3 249.8C64.9 239.7 62.3 223 69.8 209.9L99.7 158.1C107.3 144.9 123.1 138.9 137.5 143.7L205.3 166.2C217.4 157.1 230.6 149.5 244.6 143.4L259.1 73.5zM320.3 400C364.5 399.8 400.2 363.9 400 319.7C399.8 275.5 363.9 239.8 319.7 240C275.5 240.2 239.8 276.1 240 320.3C240.2 364.5 276.1 400.2 320.3 400z"/>
-                                        </svg>
-                                    </button> -->
-                                </div>
+                                <div>Magnetometer: <span id="magData">[
+                                    <range-input type="display" id="mag-0" width="70px"></range-input>nT, 
+                                    <range-input type="display" id="mag-1" width="70px"></range-input>nT, 
+                                    <range-input type="display" id="mag-2" width="70px"></range-input>nT
+                                ]</span></div>
+                                <div>Acceleration: <span id="accData">[
+                                    <range-input type="display" id="acc-0" width="70px"></range-input>g, 
+                                    <range-input type="display" id="acc-1" width="70px"></range-input>g, 
+                                    <range-input type="display" id="acc-2" width="70px"></range-input>g
+                                ]</span></div>
+                                <div>Angular Rotation: <span id="accData">[
+                                    <range-input type="display" id="gyr-0" width="70px"></range-input>dps, 
+                                    <range-input type="display" id="gyr-1" width="70px"></range-input>dps, 
+                                    <range-input type="display" id="gyr-2" width="70px"></range-input>dps
+                                ]</span></div>
                             </div>
                             <b>Adc Data: </b>
                             <div class="dataGroup" id="adcCollapse">
-                                <div>Battery Voltage: <span id="battVoltage">-.---</span>V</div>
-                                <div>Reference Voltage: <span id="refVoltage">-.---</span>V</div>
-                                <div>I<sub>propI</sub> Voltages: <span id="ipropiVoltages">[-.---V, -.---V, -.---V, -.---V]</span></div>
-                                <div>Temperature: <span id="selfTemp">--</span>°C</div>
-                                <hr>
-                                <div>Data taken timestamp: <span id="dataTakenTimestamp">--:--.---</span></div>
+                                <div>Battery Voltage: <range-input type="display" id="battVoltageInput" width="70px"></range-input>V</div>
+                                <div>Reference Voltage: <range-input type="display" id="refVoltageInput" width="70px"></range-input>V</div>
+                                <div>I<sub>propI</sub> Voltages: [
+                                    <range-input type="display" id="ipropiVoltagesInput-0" width="70px"></range-input>V, 
+                                    <range-input type="display" id="ipropiVoltagesInput-1" width="70px"></range-input>V, 
+                                    <range-input type="display" id="ipropiVoltagesInput-2" width="70px"></range-input>V,
+                                    <range-input type="display" id="ipropiVoltagesInput-3" width="70px"></range-input>V
+                                ]</div>
+                                <div>Temperature: <range-input type="display" id="selfTempInput" width="70px"></range-input>°C</div>
+                            </div>
+                            <div id="3d-viewer" class="border position-relative" style="width: fit-content">
+                                <!--!Font Awesome Free v7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2025 Fonticons, Inc.-->
+                                <!-- <button type="button" class="btn btn-outline-primary position-absolute" style="top: 3%; right: 3%; z-index: 10">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640">
+                                        <path d="M259.1 73.5C262.1 58.7 275.2 48 290.4 48L350.2 48C365.4 48 378.5 58.7 381.5 73.5L396 143.5C410.1 149.5 423.3 157.2 435.3 166.3L503.1 143.8C517.5 139 533.3 145 540.9 158.2L570.8 210C578.4 223.2 575.7 239.8 564.3 249.9L511 297.3C511.9 304.7 512.3 312.3 512.3 320C512.3 327.7 511.8 335.3 511 342.7L564.4 390.2C575.8 400.3 578.4 417 570.9 430.1L541 481.9C533.4 495 517.6 501.1 503.2 496.3L435.4 473.8C423.3 482.9 410.1 490.5 396.1 496.6L381.7 566.5C378.6 581.4 365.5 592 350.4 592L290.6 592C275.4 592 262.3 581.3 259.3 566.5L244.9 496.6C230.8 490.6 217.7 482.9 205.6 473.8L137.5 496.3C123.1 501.1 107.3 495.1 99.7 481.9L69.8 430.1C62.2 416.9 64.9 400.3 76.3 390.2L129.7 342.7C128.8 335.3 128.4 327.7 128.4 320C128.4 312.3 128.9 304.7 129.7 297.3L76.3 249.8C64.9 239.7 62.3 223 69.8 209.9L99.7 158.1C107.3 144.9 123.1 138.9 137.5 143.7L205.3 166.2C217.4 157.1 230.6 149.5 244.6 143.4L259.1 73.5zM320.3 400C364.5 399.8 400.2 363.9 400 319.7C399.8 275.5 363.9 239.8 319.7 240C275.5 240.2 239.8 276.1 240 320.3C240.2 364.5 276.1 400.2 320.3 400z"/>
+                                    </svg>
+                                </button> -->
                             </div>
                         </div>
                         </div>
                     </div>
-                </div>
+                </div> <!-- INFO -->
+                <div style="height: 500px"></div>
             </div>
         </div>
     </div>
+
+    <!-- CODE INCLUDES -->
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
-    <script src="helpers.js"></script>
-    <script src="toasts.js"></script>
-    <script src="serail_port.js"></script>
     <script src="index.js"></script>
+    <script src="widgets/logger.js"></script>
+    <script src="widgets/plotter.js"></script>
+    <script src="widgets/configuration.js"></script>
+    <script src="widgets/calibration.js"></script>
+    <script src="helpers.js"></script>
+    <!-- <script src="toasts.js"></script> -->
+    <script src="serail_port.js"></script>
     <script src="3d_viewer_setup.js" type="module"></script>
     <script src="event_listener.js"></script>
 </body>
