@@ -24,6 +24,135 @@
     12. (Step 4 tab) The user can click Accept Calibration or cancel.
 */
 
+/* CALIBRATION TASK ON TORPEDO:
+	void __NO_RETURN calibrationRoutine(void *parameters) {
+		Message msg;
+		std::optional<std::vector<Vec3>> data_opt = std::nullopt;
+		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_9, GPIO_PIN_RESET);
+
+		while (1) {
+			while (!(msg.type() == MESSAGE_TYPE_ACTION && msg.asAction().type() == ACTION_TYPE_CALIBRATION_SETTINGS)) {
+				msg = Message::receiveWait();
+			}
+
+			CalibrationSettings settings = msg.asAction().asCalibrationSettings();
+			bool isUnplugged = settings.startSignal == CALIBRATION_START_SIGNAL_ON_UNPLUG;
+
+			while (1) {
+				std::optional<Message> msg_opt = Message::receiveWait(WAIT_FOR_UNPLUG_MS);
+
+				if (!msg_opt.has_value() && isUnplugged) {
+					osDelay(pdMS_TO_TICKS(settings.waitMsAfterUnplug));
+					break;
+				}
+
+				if (!msg_opt.has_value()) { continue; }
+
+				msg = msg_opt.value();
+
+				if (
+					msg.type() == MESSAGE_TYPE_ACTION &&
+					msg.asAction().type() == ACTION_TYPE_CALIBRATION_MSG &&
+					msg.asAction().asCalibrationMsg() == CALIBRATION_MSG_START
+				) { break; }
+
+				if (
+					msg.type() == MESSAGE_TYPE_ACTION &&
+					msg.asAction().type() == ACTION_TYPE_CALIBRATION_SETTINGS
+				) {
+					settings = msg.asAction().asCalibrationSettings();
+				}
+			}
+
+			HAL_GPIO_WritePin(GPIOB, GPIO_PIN_9, GPIO_PIN_SET);
+
+			uint32_t startTime = HAL_GetTick();
+			uint32_t loopStartTime;
+			uint32_t waitBetweenMeasurements = 1000 / settings.dataCollectRateHz;
+
+			while (HAL_GetTick() - startTime < settings.dataCollectTimeMs) {
+				loopStartTime = HAL_GetTick();
+
+				Vec3 vector;
+
+				auto lock = dataMutex.get_lock();
+				switch (settings.type) {
+				case CALIBRATION_TYPE_MAG: {
+					AK09940A_Output mag_output = lock->ak09940a_dev.single_measure();
+					for (int i = 0; i < 3; i++) {
+						vector[i] = static_cast<float>(mag_output.mag[i]);
+					}
+					break;
+				} case CALIBRATION_TYPE_ACC: {
+					ICM42688_Data icm_data = lock->icm42688_dev.get_data();
+					for (int i = 0; i < 3; i++) {
+						vector[i] = icm_data.acc[i];
+					}
+					break;
+				} case CALIBRATION_TYPE_GYR: {
+					ICM42688_Data icm_data = lock->icm42688_dev.get_data();
+					for (int i = 0; i < 3; i++) {
+						vector[i] = icm_data.gyro[i];
+					}
+					break;
+				} default: {
+					vector = {0.0f, 0.0f, 0.0f};
+				}}
+				lock.unlock();
+
+				if (isUnplugged) {
+					data_opt.value().push_back(vector);
+				} else {
+					Message::sendCalibrationData(std::span{&vector, 1}, false).send();
+				}
+
+				osDelay(waitBetweenMeasurements - (HAL_GetTick() - loopStartTime));
+			}
+
+			HAL_GPIO_WritePin(GPIOB, GPIO_PIN_9, GPIO_PIN_RESET);
+
+			if (isUnplugged) {
+				Message::receiveWait();
+				uint32_t index = 0;
+				std::span<Vec3> data_span = data_opt.value();
+
+				const uint32_t maxVec3PerMessage = 250 / 12;
+
+				while (index + maxVec3PerMessage < data_span.size()) {
+					Message::sendCalibrationData(data_span.subspan(index, index + maxVec3PerMessage), false).send();
+
+					index += maxVec3PerMessage;
+				}
+
+				Message::sendCalibrationData(data_span.subspan(index, data_span.size()), true).send();
+			} else {
+				Message::sendCalibrationData(std::span<Vec3>(), true).send();
+			}
+
+			while (!(
+				msg.type() == MESSAGE_TYPE_ACTION &&
+				msg.asAction().type() == ACTION_TYPE_CALIBRATION_MSG
+			)) { msg = Message::receiveWait(); }
+
+			CalibrationMsgType calibrationMessage = msg.asAction().asCalibrationMsg();
+
+			if (calibrationMessage == CALIBRATION_MSG_DONE) {
+				break;
+			} else if (calibrationMessage == CALIBRATION_MSG_GO_AGAIN) {
+				continue;
+			} else {
+				printf("DID NOT EXPECT calibrationMessage: %d", calibrationMessage);
+			}
+		}
+
+		auto sm_lock = systemModesSM.get_lock();
+		sm_lock->process_event(ConnectedMode::CalibrationStop {});
+		sm_lock.unlock();
+
+		osThreadExit();
+	}
+*/
+
 const magnetometerModal = $(`<div class="modal fade" id="magCalibration" tabindex="-1" aria-labelledby="magCalibrationLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
@@ -82,11 +211,11 @@ const magnetometerModal = $(`<div class="modal fade" id="magCalibration" tabinde
                                         <input type="number" class="form-control" id="dataAcquisitionRate" value="5" min="1" max="100">
                                     </div>
                                 </div>
-                                <div class="d-flex align-items-center" id="magCalStatus">
-                                    <span>Waiting for data</span>   
-                                    <div class="spinner-border" role="status" style="width: 1.5rem; height: 1.5rem; margin-left: 10px;">
-                                        <span class="visually-hidden">Loading...</span>
-                                    </div>
+                            </div>
+                            <div class="d-flex align-items-center" id="unplugToCalibrateStatus">
+                                <span>Waiting for data</span>   
+                                <div class="spinner-border" role="status" style="width: 1.5rem; height: 1.5rem; margin-left: 10px;">
+                                    <span class="visually-hidden">Loading...</span>
                                 </div>
                             </div>
                         </div>
@@ -125,11 +254,55 @@ $("#step1-next-mag").on("click", () => {
     magCalTabs[0].hide();
     magCalTabs[1].show();
 
-    // Initialize Step 2 contents
-    // initMagCalStep2();
+    initializeStep2();
 });
 
 // ------------------------------------------- Page 2
+calibrationSettings = {
+    type: CALIBRATION_TYPES.MAGNETOMETER, // MAG
+    startSignal: CALIBRATION_START_SIGNAL.NOW, // PLUGGED_IN
+    dataCollectTimeMs: 30000,
+    waitMsAfterUnplug: 5000,
+    dataCollectRateHz: 5
+}
+
+function initializeStep2() {
+    // Reset Step 2 inputs
+    $("#totalTimeSeconds").val(calibrationSettings.dataCollectTimeMs / 1000);
+    $("#waitSecondsAfterUnplug").val(calibrationSettings.waitMsAfterUnplug / 1000);
+    $("#dataAcquisitionRate").val(calibrationSettings.dataCollectRateHz);
+    $("#magCalStartMode").val("pluggedIn");
+    $("#magCalStartPluggedIn").show();
+    $("#magCalStartUnplugged").hide();
+
+    sendAction(ACTION_IDS.CALIBRATION_SETTINGS, calibrationSettings);
+}
+
+$("#totalTimeSeconds").on("change", (e) => {
+    const totalTimeSeconds = parseInt(e.target.value);
+    calibrationSettings.dataCollectTimeMs = totalTimeSeconds * 1000;
+    sendAction(ACTION_IDS.CALIBRATION_SETTINGS, calibrationSettings);
+});
+
+$("#waitSecondsAfterUnplug").on("change", (e) => {
+    const waitSecondsAfterUnplug = parseInt(e.target.value);
+    calibrationSettings.waitMsAfterUnplug = waitSecondsAfterUnplug * 1000;
+    sendAction(ACTION_IDS.CALIBRATION_SETTINGS, calibrationSettings);
+});
+
+$("#dataAcquisitionRate").on("change", (e) => {
+    const dataAcquisitionRate = parseInt(e.target.value);
+    calibrationSettings.dataCollectRateHz = dataAcquisitionRate;
+    sendAction(ACTION_IDS.CALIBRATION_SETTINGS, calibrationSettings);
+});
+
+// Used so the device knows when it has been unplugged
+const UNPLUGGED_PING_INTERVAL_MS = 400;
+unpluggedSettingPingInterval = null;
+unpluggedSettingPingFunction = () => {
+    sendAction(ACTION_IDS.CALIBRATION_SETTINGS, calibrationSettings);
+}
+
 $("#magCalStartMode").on("change", (e) => {
     const mode = e.target.value;
 
@@ -140,4 +313,16 @@ $("#magCalStartMode").on("change", (e) => {
         $("#magCalStartPluggedIn").hide();
         $("#magCalStartUnplugged").show();
     }
+
+    calibrationSettings.startSignal = (mode == "pluggedIn") ? CALIBRATION_START_SIGNAL.NOW : CALIBRATION_START_SIGNAL.ON_UNPLUG;
+    sendAction(ACTION_IDS.CALIBRATION_SETTINGS, calibrationSettings);
+
+    if (unpluggedSettingPingInterval == null && calibrationSettings.startSignal == CALIBRATION_START_SIGNAL.ON_UNPLUG) {
+        unpluggedSettingPingInterval = setInterval(unpluggedSettingPingFunction, UNPLUGGED_PING_INTERVAL_MS);
+    } else if (unpluggedSettingPingInterval != null && calibrationSettings.startSignal == CALIBRATION_START_SIGNAL.NOW) {
+        clearInterval(unpluggedSettingPingInterval);
+        unpluggedSettingPingInterval = null;
+    }
 });
+
+// $("#startMagCalBtn").on("click", () => {

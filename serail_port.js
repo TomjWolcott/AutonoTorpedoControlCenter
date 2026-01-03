@@ -17,7 +17,11 @@ const MESSAGE_IDS = {
     /** Used by: Device & Controller. @type{int} */
     SEND_CONFIG: 4,
     /** Used by: Device. @type{int} */
-    TEXT: 5
+    TEXT: 5,
+    /** Used by: Device & Controller. @type{int} */
+    CALIBRATION_DATA: 6,
+    /** Used by: Device & Controller. @type{int} */
+    ECHO: 7,
 };
 
 /**
@@ -64,6 +68,13 @@ function convertMessage(message) {
                 return { rawData: message, id: message[5], name: "SendConfig", config: convertMessageToConfiguration(message.slice(6)) };
             case (MESSAGE_IDS.TEXT):
                 return { rawData: message, id: message[5], name: "Text", text: DECODER.decode(message.slice(6)) };
+            case (MESSAGE_IDS.CALIBRATION_DATA):
+                return { 
+                    rawData: message, id: message[5], name: "CalibrationData", isComplete: message[6] == 1, 
+                    vectors: convertCalibrationDataToVectors(message.slice(7))
+                };
+            case (MESSAGE_IDS.ECHO):
+                return { rawData: message, id: message[5], name: "Echo", origin: message[6], data: message.slice(7) };
             default:
                 return {
                     rawData: message,
@@ -145,11 +156,11 @@ async function readUntilClosed(port, onMessage = null, timeout = 1000) {
 
                 [msg_data, rx_data] = extractMessage(rx_data);
 
-                if (msg_data) break;
+                if (msg_data) {
+                    let msg = convertMessage(msg_data);
+                    MessageAwaiter.handleMessage(msg);
+                }
             }
-
-            let msg = convertMessage(msg_data);
-            if (onMessage) onMessage(msg);
         } catch (error) {
             console.log("readUntilClosed err: ", error);
         } finally {
@@ -163,11 +174,94 @@ async function readUntilClosed(port, onMessage = null, timeout = 1000) {
     await port.close();
 }
 
+class MessageAwaiter {
+    static awaiters = {};
+    static handleMessage(msg) {
+        for (let id in MessageAwaiter.awaiters) {
+            let awaiter = MessageAwaiter.awaiters[id];
+            if (awaiter.isExpectedMessage(msg)) {
+                awaiter.receiveMessage(msg);
+            }
+        }
+    }
+    constructor({onReceive = () => {}, onTimeout = () => {}, isExpectedMessage = (msg) => true, timeout = null, removeAfterMatch = true} = {}) {
+        this.id = Math.random().toString(36).substring(2, 15);
+        this.onReceive = onReceive;
+        this.isExpectedMessage = isExpectedMessage;
+        this.timeout = timeout;
+        this.startTime = Date.now();
+        this.removeAfterMatch = removeAfterMatch;
+
+        MessageAwaiter.awaiters[this.id] = this;
+
+        if (this.timeout != null) {
+            setTimeout(() => {
+                onTimeout();
+                delete MessageAwaiter.awaiters[this.id];
+            }, this.timeout);
+        }
+    }
+    receiveMessage(msg) {
+        this.onReceive(msg);
+
+        if (this.removeAfterMatch) {
+            delete MessageAwaiter.awaiters[this.id];
+        }
+    }
+}
+
+async function recieveWait({isExpectedMessage = (msg) => true, timeout = null} = {}) {
+    return new Promise((resolve, _reject) => {
+        new MessageAwaiter({
+            isExpectedMessage: isExpectedMessage,
+            timeout: timeout,
+            onReceive: (msg) => {
+                resolve(msg);
+            },
+            onTimeout: () => {
+                resolve(null);
+            }
+        });
+    });
+}
+
 async function sendPing(port) {
     let writer = port.writable.getWriter();
     
     await writer.write(new Uint8Array([...MESSAGE_HEADER, 6, MESSAGE_IDS.PING]));
     writer.releaseLock();
+}
+
+const ECHO_ORIGIN = {
+    CONTROLLER: 0,
+    DEVICE: 1,
+}
+
+async function sendReceiveEcho(port, data) {
+    let writer = port.writable.getWriter();
+
+    await writer.write(new Uint8Array([...MESSAGE_HEADER, 7 + data.length, MESSAGE_IDS.ECHO, ECHO_ORIGIN.CONTROLLER, ...data]));
+    writer.releaseLock();
+
+    return await recieveWait({isExpectedMessage: (msg) => {
+        return msg.id == MESSAGE_IDS.ECHO && msg.origin == ECHO_ORIGIN.CONTROLLER && arraysEqual(msg.data, data);
+    }});
+}
+
+async function repeatEchoes(port) {
+    while (true) {
+        let msg = await recieveWait({isExpectedMessage: (msg) => {
+            return msg.id == MESSAGE_IDS.ECHO && msg.origin == ECHO_ORIGIN.DEVICE && arraysEqual(msg.data, data);
+        }});
+
+        let writer = port.writable.getWriter();
+        await writer.write(new Uint8Array(msg.rawData));
+        writer.releaseLock();
+    }
+}
+
+function arraysEqual(a, b) {
+    return a.length === b.length && a.every((val, index) => { return val === b[index]; });
 }
 
 function floatToIEEE754(float) {
@@ -184,9 +278,10 @@ function IEEE754ToFloat(bytes) {
 
 const ACTION_IDS = {
     NOOP: 0,
-    CALIBRATE: 1,
+    CALIBRATION_SETTINGS: 1,
     SPIN_MOTOR: 2,
     SEND_CONFIG: 3,
+    CALIBRATION_MSG: 4
 }
 
 const CALIBRATION_TYPES = {
@@ -195,12 +290,24 @@ const CALIBRATION_TYPES = {
     GYROSCOPE: 2,
 }
 
+const CALIBRATION_MSG_TYPE = {
+	DONE: 0,
+	GO_AGAIN: 1,
+	START: 2
+};
+
+
+const CALIBRATION_START_SIGNAL = {
+	NOW: 0,
+	ON_UNPLUG: 1,
+};
+
 async function sendAction(port, action, actionData = null) {
     let writer = port.writable.getWriter();
     let data = null;
 
     switch (action) {
-        case (ACTION_IDS.CALIBRATE):
+        case (ACTION_IDS.CALIBRATION_SETTINGS):
             data = new Uint8Array([...MESSAGE_HEADER, 14, MESSAGE_IDS.ACTION, action,
                 actionData.calibrationType,
                 (actionData.waitAfterUnplugMs >> 8) & 0xFF,
@@ -217,6 +324,11 @@ async function sendAction(port, action, actionData = null) {
                 floatToUint8((actionData.speed1 + 1) * 128),
                 floatToUint8((actionData.speed2 + 1) * 128),
                 floatToUint8((actionData.speed3 + 1) * 128),
+            ]);
+            break;
+        case (ACTION_IDS.ACTION_TYPE_CALIBRATION_MSG):
+            data = new Uint8Array([...MESSAGE_HEADER, 7, MESSAGE_IDS.ACTION, action,
+                actionData.calibrationMessageType
             ]);
             break;
     }
@@ -354,6 +466,23 @@ async function sendConfiguration(port, configObj) {
 
     await writer.write(data);
     writer.releaseLock();
+}
+
+function convertCalibrationDataToVectors(message) {
+    let vectors = [];
+
+    while (message.length >= 12) {
+        let vector = [];
+
+        for (let i = 0; i < 3; i++) {
+            vector.push(IEEE754ToFloat(message.slice(0, 4)));
+            message = message.slice(4);
+        }
+
+        vectors.push(vector);
+    }
+
+    return vectors;
 }
 
 accMin = [0, 0, 0];
