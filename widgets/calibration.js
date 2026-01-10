@@ -30,16 +30,21 @@
 		std::optional<std::vector<Vec3>> data_opt = std::nullopt;
 		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_9, GPIO_PIN_RESET);
 
+		printCalibRoutine(0, msg);
+
 		while (1) {
-			while (!(msg.type() == MESSAGE_TYPE_ACTION && msg.asAction().type() == ACTION_TYPE_CALIBRATION_SETTINGS)) {
-				msg = Message::receiveWait();
-			}
+			msg = Message::receiveWait([](Message &msg) {
+				return msg.type() == MESSAGE_TYPE_ACTION && msg.asAction().type() == ACTION_TYPE_CALIBRATION_SETTINGS;
+			});
+
+			printCalibRoutine(1, msg);
 
 			CalibrationSettings settings = msg.asAction().asCalibrationSettings();
 			bool isUnplugged = settings.startSignal == CALIBRATION_START_SIGNAL_ON_UNPLUG;
 
 			while (1) {
 				std::optional<Message> msg_opt = Message::receiveWait(WAIT_FOR_UNPLUG_MS);
+				printCalibRoutine(2, msg);
 
 				if (!msg_opt.has_value() && isUnplugged) {
 					osDelay(pdMS_TO_TICKS(settings.waitMsAfterUnplug));
@@ -63,6 +68,7 @@
 					settings = msg.asAction().asCalibrationSettings();
 				}
 			}
+			printCalibRoutine(3, msg);
 
 			HAL_GPIO_WritePin(GPIOB, GPIO_PIN_9, GPIO_PIN_SET);
 
@@ -78,19 +84,19 @@
 				auto lock = dataMutex.get_lock();
 				switch (settings.type) {
 				case CALIBRATION_TYPE_MAG: {
-					AK09940A_Output mag_output = lock->ak09940a_dev.single_measure();
+					AK09940A_Output mag_output = lock->ak09940a_dev.single_measure_raw();
 					for (int i = 0; i < 3; i++) {
 						vector[i] = static_cast<float>(mag_output.mag[i]);
 					}
 					break;
 				} case CALIBRATION_TYPE_ACC: {
-					ICM42688_Data icm_data = lock->icm42688_dev.get_data();
+					ICM42688_Data icm_data = lock->icm42688_dev.get_data_raw();
 					for (int i = 0; i < 3; i++) {
 						vector[i] = icm_data.acc[i];
 					}
 					break;
 				} case CALIBRATION_TYPE_GYR: {
-					ICM42688_Data icm_data = lock->icm42688_dev.get_data();
+					ICM42688_Data icm_data = lock->icm42688_dev.get_data_raw();
 					for (int i = 0; i < 3; i++) {
 						vector[i] = icm_data.gyro[i];
 					}
@@ -128,11 +134,17 @@
 			} else {
 				Message::sendCalibrationData(std::span<Vec3>(), true).send();
 			}
+			printCalibRoutine(4, msg);
 
-			while (!(
-				msg.type() == MESSAGE_TYPE_ACTION &&
-				msg.asAction().type() == ACTION_TYPE_CALIBRATION_MSG
-			)) { msg = Message::receiveWait(); }
+			msg = Message::receiveWait([](Message &msg) {
+				return msg.type() == MESSAGE_TYPE_ACTION &&
+					   msg.asAction().type() == ACTION_TYPE_CALIBRATION_MSG && (
+						   msg.asAction().asCalibrationMsg() == CALIBRATION_MSG_DONE ||
+						   msg.asAction().asCalibrationMsg() == CALIBRATION_MSG_GO_AGAIN
+					   );
+			});
+
+			printCalibRoutine(5, msg);
 
 			CalibrationMsgType calibrationMessage = msg.asAction().asCalibrationMsg();
 
@@ -144,6 +156,7 @@
 				printf("DID NOT EXPECT calibrationMessage: %d", calibrationMessage);
 			}
 		}
+		printCalibRoutine(6, msg);
 
 		auto sm_lock = systemModesSM.get_lock();
 		sm_lock->process_event(ConnectedMode::CalibrationStop {});
@@ -165,7 +178,7 @@ const magnetometerModal = $(`<div class="modal fade" id="magCalibration" tabinde
                     <div class="d-flex flex-column">
                         <b>Step 1:</b>
                         <p>
-                            Rotate the torpedo in all directions to capture magnetic field data. 
+                            This is the calibration routine for the magnetometer. 
                             Follow the on-screen instructions to ensure accurate calibration.
                         </p>
                         <button type="button" class="btn btn-primary mb-3" id="step1-next-mag">Start Calibration</button>
@@ -192,7 +205,7 @@ const magnetometerModal = $(`<div class="modal fade" id="magCalibration" tabinde
                                 </p>
                                 <b>Preview of Live Data:</b>
                                 <div id="magCalLiveDataPlot" style="width: 300px; height: 300px; border: 1px solid #ccc; margin-bottom: 20px;"></div>
-                                <button type="button" class="btn btn-primary" id="startMagCalBtn">Start Calibration</button>
+                                <button type="button" class="btn btn-primary" id="startMagCalibration">Start Calibration</button>
                             </div>
                             <div class="dataGroup" id="magCalStartUnplugged" style="display: none;">
                                 <p>
@@ -211,8 +224,14 @@ const magnetometerModal = $(`<div class="modal fade" id="magCalibration" tabinde
                                         <input type="number" class="form-control" id="dataAcquisitionRate" value="5" min="1" max="100">
                                     </div>
                                 </div>
+                                <div class="d-flex align-items-center" id="waitingForUnplug">
+                                    <span>Waiting for unplug</span>   
+                                    <div class="spinner-border" role="status" style="width: 1.5rem; height: 1.5rem; margin-left: 10px;">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="d-flex align-items-center" id="unplugToCalibrateStatus">
+                            <div class="d-flex align-items-center" id="waitingForData">
                                 <span>Waiting for data</span>   
                                 <div class="spinner-border" role="status" style="width: 1.5rem; height: 1.5rem; margin-left: 10px;">
                                     <span class="visually-hidden">Loading...</span>
@@ -250,10 +269,6 @@ $("#startMagCalBtn").on("click", () => {
 
 // ------------------------------------------- Page 1
 $("#step1-next-mag").on("click", () => {
-    // Move to Step 2 tab
-    magCalTabs[0].hide();
-    magCalTabs[1].show();
-
     initializeStep2();
 });
 
@@ -266,7 +281,14 @@ calibrationSettings = {
     dataCollectRateHz: 5
 }
 
-function initializeStep2() {
+let checkInterval = null;
+
+async function initializeStep2() {
+    magCalTabs[0].hide();
+    magCalTabs[1].show();
+
+    await sendAction(controlCenterState.port, ACTION_IDS.CALIBRATION_MSG, {calibrationMessageType: CALIBRATION_MSG_TYPE.START});
+
     // Reset Step 2 inputs
     $("#totalTimeSeconds").val(calibrationSettings.dataCollectTimeMs / 1000);
     $("#waitSecondsAfterUnplug").val(calibrationSettings.waitMsAfterUnplug / 1000);
@@ -275,33 +297,41 @@ function initializeStep2() {
     $("#magCalStartPluggedIn").show();
     $("#magCalStartUnplugged").hide();
 
-    sendAction(ACTION_IDS.CALIBRATION_SETTINGS, calibrationSettings);
+    $("#waitForUnplug").show();
+    $("#waitingForData").hide();
+
+    await sendAction(controlCenterState.port, ACTION_IDS.CALIBRATION_SETTINGS, calibrationSettings);
+
+    // check for disconnection at regular intervals
+    const checkIntervalMs = 500;
+    checkInterval = setInterval(async () => {
+        if (!controlCenterState.port || !controlCenterState.port.readable) {
+            $("#waitingForUnplug").hide();
+            $("#waitingForData").show();
+            startAwaitingData();
+            clearInterval(checkInterval);
+            checkInterval = null;
+        }
+    }, checkIntervalMs);
 }
 
 $("#totalTimeSeconds").on("change", (e) => {
     const totalTimeSeconds = parseInt(e.target.value);
     calibrationSettings.dataCollectTimeMs = totalTimeSeconds * 1000;
-    sendAction(ACTION_IDS.CALIBRATION_SETTINGS, calibrationSettings);
+    sendAction(controlCenterState.port, ACTION_IDS.CALIBRATION_SETTINGS, calibrationSettings);
 });
 
 $("#waitSecondsAfterUnplug").on("change", (e) => {
     const waitSecondsAfterUnplug = parseInt(e.target.value);
     calibrationSettings.waitMsAfterUnplug = waitSecondsAfterUnplug * 1000;
-    sendAction(ACTION_IDS.CALIBRATION_SETTINGS, calibrationSettings);
+    sendAction(controlCenterState.port, ACTION_IDS.CALIBRATION_SETTINGS, calibrationSettings);
 });
 
 $("#dataAcquisitionRate").on("change", (e) => {
     const dataAcquisitionRate = parseInt(e.target.value);
     calibrationSettings.dataCollectRateHz = dataAcquisitionRate;
-    sendAction(ACTION_IDS.CALIBRATION_SETTINGS, calibrationSettings);
+    sendAction(controlCenterState.port, ACTION_IDS.CALIBRATION_SETTINGS, calibrationSettings);
 });
-
-// Used so the device knows when it has been unplugged
-const UNPLUGGED_PING_INTERVAL_MS = 400;
-unpluggedSettingPingInterval = null;
-unpluggedSettingPingFunction = () => {
-    sendAction(ACTION_IDS.CALIBRATION_SETTINGS, calibrationSettings);
-}
 
 $("#magCalStartMode").on("change", (e) => {
     const mode = e.target.value;
@@ -309,20 +339,46 @@ $("#magCalStartMode").on("change", (e) => {
     if (mode == "pluggedIn") {
         $("#magCalStartPluggedIn").show();
         $("#magCalStartUnplugged").hide();
+        calibrationSettings.startSignal = CALIBRATION_START_SIGNAL.NOW;
     } else if (mode == "unplugToCalibrate") {
         $("#magCalStartPluggedIn").hide();
         $("#magCalStartUnplugged").show();
+        calibrationSettings.startSignal = CALIBRATION_START_SIGNAL.ON_UNPLUG;
     }
 
-    calibrationSettings.startSignal = (mode == "pluggedIn") ? CALIBRATION_START_SIGNAL.NOW : CALIBRATION_START_SIGNAL.ON_UNPLUG;
-    sendAction(ACTION_IDS.CALIBRATION_SETTINGS, calibrationSettings);
-
-    if (unpluggedSettingPingInterval == null && calibrationSettings.startSignal == CALIBRATION_START_SIGNAL.ON_UNPLUG) {
-        unpluggedSettingPingInterval = setInterval(unpluggedSettingPingFunction, UNPLUGGED_PING_INTERVAL_MS);
-    } else if (unpluggedSettingPingInterval != null && calibrationSettings.startSignal == CALIBRATION_START_SIGNAL.NOW) {
-        clearInterval(unpluggedSettingPingInterval);
-        unpluggedSettingPingInterval = null;
-    }
+    sendAction(controlCenterState.port, ACTION_IDS.CALIBRATION_SETTINGS, calibrationSettings);
 });
 
-// $("#startMagCalBtn").on("click", () => {
+$("#startMagCalibration").on("click", async () => {
+    await sendAction(controlCenterState.port, ACTION_IDS.CALIBRATION_MSG, {calibrationMessageType: CALIBRATION_MSG_TYPE.START});
+    $("#startMagCalibration").prop("disabled", true);
+
+    startAwaitingData();
+});
+
+let calibrationData = [];
+
+async function startAwaitingData() {
+    let msg;
+
+    do {
+        msg = await recieveWait({isExpectedMessage: (msg) => {
+            msg.type == MESSAGE_IDS.CALIBRATION_DATA
+        }});
+
+        calibrationData = calibrationData.concat(msg.vectors);
+    } while (msg.isComplete);
+
+    // Move to Step 3 tab
+    initializeStep3();
+}
+
+// ------------------------------------------- Page 3
+function initializeStep3() {
+    magCalTabs[1].hide();
+    magCalTabs[2].show();
+    if (checkInterval != null) {
+        clearInterval(checkInterval);
+        checkInterval = null;
+    }
+}

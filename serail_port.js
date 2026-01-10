@@ -326,7 +326,7 @@ async function sendAction(port, action, actionData = null) {
                 floatToUint8((actionData.speed3 + 1) * 128),
             ]);
             break;
-        case (ACTION_IDS.ACTION_TYPE_CALIBRATION_MSG):
+        case (ACTION_IDS.CALIBRATION_MSG):
             data = new Uint8Array([...MESSAGE_HEADER, 7, MESSAGE_IDS.ACTION, action,
                 actionData.calibrationMessageType
             ]);
@@ -335,8 +335,9 @@ async function sendAction(port, action, actionData = null) {
 
     if (data != null) {
         await writer.write(data);
-        writer.releaseLock();
     }
+
+    writer.releaseLock();
 }
 
 /** Config format: [ (all 4 bytes float IEEE 754)
