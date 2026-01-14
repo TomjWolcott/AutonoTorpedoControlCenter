@@ -166,72 +166,71 @@
 	}
 */
 
-const magnetometerModal = $(`<div class="modal fade" id="magCalibration" tabindex="-1" aria-labelledby="magCalibrationLabel" aria-hidden="true">
+/// Calibration modal HTML with the routine settings passed in
+const calibrationModal = (rs) => {
+    const t = rs.type;
+    return $(`<div class="modal fade" id="calibrationModal-${t}" tabindex="-1" aria-labelledby="${t}CalibrationLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="magCalibration-calibration">Magnetometer Calibration</h5>
+                <h5 class="modal-title" id="${t}-calibration">${rs.text.name}</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <div id="step1-tab">
+                <div id="step1-tab-${t}">
                     <div class="d-flex flex-column">
                         <b>Step 1:</b>
-                        <p>
-                            This is the calibration routine for the magnetometer. 
-                            Follow the on-screen instructions to ensure accurate calibration.
-                        </p>
-                        <button type="button" class="btn btn-primary mb-3" id="step1-next-mag">Start Calibration</button>
+                        <p>${rs.text.step1}</p>
+                        <button type="button" class="btn btn-primary mb-3" id="step1-next-${t}">Start Calibration</button>
                     </div>
                 </div>
-                <div id="step2-tab" style="display: none;">
+                <div id="step2-tab-${t}" style="display: none;">
                     <div class="d-flex flex-column">
                         <b>Step 2:</b>
-                        <p>
-                            Select your calibration mode and settings below to begin data collection.
-                        </p>
-                        <label for="totalTimeSeconds" class="form-label">Total Calibration Time (Seconds)</label>
-                        <input type="number" class="form-control" id="totalTimeSeconds" value="30" min="10" max="300">
+                        <p>${rs.text.step2}</p>
+                        <label for="totalTimeSeconds-${t}" class="form-label">Total Calibration Time (Seconds)</label>
+                        <input type="number" class="form-control" id="totalTimeSeconds-${t}" value="30" min="10" max="300">
                         <hr>
-                        <select id="magCalStartMode" class="form-select" aria-label="Calibration Start Mode">
+                        <select id="calStartMode-${t}" class="form-select" aria-label="Calibration Start Mode">
                             <option value="pluggedIn" selected>Calibrate While Plugged In</option>
                             <option value="unplugToCalibrate">Unplug to Calibrate</option>
                         </select>
                         <div style="padding-left: 10px;">
-                            <div class="dataGroup" id="magCalStartPluggedIn">
+                            <div class="dataGroup" id="startPluggedIn-${t}">
                                 <p>
                                     Click "Start Calibration" to begin collecting data while plugged in.  
-                                    Make sure to rotate the torpedo in all directions, the collected data will be shown in the preview below.
+                                    Make sure to rotate the device in all directions, the collected data will be shown in the preview below.
                                 </p>
                                 <b>Preview of Live Data:</b>
-                                <div id="magCalLiveDataPlot" style="width: 300px; height: 300px; border: 1px solid #ccc; margin-bottom: 20px;"></div>
-                                <button type="button" class="btn btn-primary" id="startMagCalibration">Start Calibration</button>
+                                <div id="liveDataPlot-${t}" style="width: 300px; height: 300px; border: 1px solid #ccc; margin-bottom: 20px;"></div>
+                                <button type="button" class="btn btn-primary" id="startCalibration-${t}">Start Calibration</button>
+                                <div id="calibCountdown-${t}" class="mt-2" style="display:none">Time left: <span id="countdownValue-${t}"></span>s</div>
                             </div>
-                            <div class="dataGroup" id="magCalStartUnplugged" style="display: none;">
+                            <div class="dataGroup" id="startUnplugged-${t}" style="display: none;">
                                 <p>
-                                    Unplug the torpedo to begin data collection. 
+                                    Unplug the device to begin data collection. 
                                     After the specified wait time, the LED will turn on to indicate that calibration is in progress.  
-                                    Make sure to rotate the torpedo in all directions during this time.
-                                    After the total calibration time, the LED will turn off, and you can plug the torpedo back in to transfer the data.
+                                    Make sure to rotate the device in all directions during this time.
+                                    After the total calibration time, the LED will turn off, and you can plug the device back in to transfer the data.
                                 </p>
                                 <div class="row mb-3 w-100"> 
                                     <div class="col">
-                                        <label for="waitSecondsAfterUnplug" class="form-label">Wait Time After Unplug (Seconds)</label>
-                                        <input type="number" class="form-control" id="waitSecondsAfterUnplug" value="5" min="2" max="60">
+                                        <label for="waitSecondsAfterUnplug-${t}" class="form-label">Wait Time After Unplug (Seconds)</label>
+                                        <input type="number" class="form-control" id="waitSecondsAfterUnplug-${t}" value="5" min="2" max="60">
                                     </div>
                                     <div class="col">
-                                        <label for="dataAcquisitionRate" class="form-label">Data Acquisition Rate (Hz)</label>
-                                        <input type="number" class="form-control" id="dataAcquisitionRate" value="5" min="1" max="100">
+                                        <label for="dataAcquisitionRate-${t}" class="form-label">Data Acquisition Rate (Hz)</label>
+                                        <input type="number" class="form-control" id="dataAcquisitionRate-${t}" value="5" min="1" max="100">
                                     </div>
                                 </div>
-                                <div class="d-flex align-items-center" id="waitingForUnplug">
+                                <div class="d-flex align-items-center" id="waitingForUnplug-${t}">
                                     <span>Waiting for unplug</span>   
                                     <div class="spinner-border" role="status" style="width: 1.5rem; height: 1.5rem; margin-left: 10px;">
                                         <span class="visually-hidden">Loading...</span>
                                     </div>
                                 </div>
                             </div>
-                            <div class="d-flex align-items-center" id="waitingForData">
+                            <div class="d-flex align-items-center" id="waitingForData-${t}" style="display:none;">
                                 <span>Waiting for data</span>   
                                 <div class="spinner-border" role="status" style="width: 1.5rem; height: 1.5rem; margin-left: 10px;">
                                     <span class="visually-hidden">Loading...</span>
@@ -240,145 +239,583 @@ const magnetometerModal = $(`<div class="modal fade" id="magCalibration" tabinde
                         </div>
                     </div>
                 </div>
-                <div id="step3-tab" style="display: none;">
-                
+                <div id="step3-tab-${t}" style="display: none;">
+                    <div class="d-flex flex-column">
+                        <b>Step 3:</b>
+                        <p>${rs.text.step3}</p>
+                        <div id="collectedDataPlot-${t}" style="width: 400px; height: 400px; border: 1px solid #ccc; margin-bottom: 20px;"></div>
+                        <button type="button" class="btn btn-secondary mb-3" id="removeOutliersBtn-${t}">Remove Outliers</button>
+                        <div>
+                            <button type="button" class="btn btn-success" id="approveCalBtn-${t}">Approve Calibration</button>
+                            <button type="button" class="btn btn-danger" id="rejectCalBtn-${t}">Reject Calibration</button>
+                            <button type="button" class="btn btn-secondary" id="collectMoreCalBtn-${t}">Collect More Data</button>
+                        </div>
+                    </div>
                 </div>
-                <div id="step4-tab" style="display: none;">...</div>
+                <div id="step4-tab-${t}" style="display: none;">
+                    <div class="d-flex flex-column">
+                        <b>Step 4:</b>
+                        <p>${rs.text.step4}</p>
+                        <div id="resultsPlot-${t}" style="width: 400px; height: 400px; border: 1px solid #ccc; margin-bottom: 20px;"></div>
+                        <button type="button" class="btn btn-secondary mb-3" id="backToStep3Btn-${t}">Go Back to Step 3</button>
+                        <div class="input-group mb-3">
+                            ${(rs.includeScale) ? 
+                                `<label class="input-group-text" for="calTypeSelect-${t}">Calibration Type</label>
+                                <select class="form-select" id="calTypeSelect-${t}">
+                                    <option value="ellipseFit" selected>Ellipse Fit</option>
+                                    <option value="minMax">Min/Max</option>
+                                </select>` : ""
+                            }
+                            <button class="btn btn-primary" type="button" id="computeCalBtn-${t}">Compute Calibration</button>
+                        </div>
+                        <div id="calResultsInputs-${t}">
+                            <div>Bias: [
+                                <range-input id="bias-0-calib-${t}" disabled="false" min="${rs.rangeInputSettings.biasMin}" max="${rs.rangeInputSettings.biasMax}" fixed="${rs.rangeInputSettings.biasFixed}" width="90px" delta="${rs.rangeInputSettings.biasDelta}" default="0"></range-input>${rs.units}, 
+                                <range-input id="bias-1-calib-${t}" disabled="false" min="${rs.rangeInputSettings.biasMin}" max="${rs.rangeInputSettings.biasMax}" fixed="${rs.rangeInputSettings.biasFixed}" width="90px" delta="${rs.rangeInputSettings.biasDelta}" default="0"></range-input>${rs.units}, 
+                                <range-input id="bias-2-calib-${t}" disabled="false" min="${rs.rangeInputSettings.biasMin}" max="${rs.rangeInputSettings.biasMax}" fixed="${rs.rangeInputSettings.biasFixed}" width="90px" delta="${rs.rangeInputSettings.biasDelta}" default="0"></range-input>${rs.units}
+                            ]</div>
+                            ${(rs.includeScale) ? 
+                                `<div>Scale: [
+                                    <range-input id="scale-0-calib-${t}" disabled="false" min="${rs.rangeInputSettings.scaleMin}" max="${rs.rangeInputSettings.scaleMax}" fixed="${rs.rangeInputSettings.scaleFixed}" width="90px" delta="${rs.rangeInputSettings.scaleDelta}"></range-input>, 
+                                    <range-input id="scale-1-calib-${t}" disabled="false" min="${rs.rangeInputSettings.scaleMin}" max="${rs.rangeInputSettings.scaleMax}" fixed="${rs.rangeInputSettings.scaleFixed}" width="90px" delta="${rs.rangeInputSettings.scaleDelta}"></range-input>, 
+                                    <range-input id="scale-2-calib-${t}" disabled="false" min="${rs.rangeInputSettings.scaleMin}" max="${rs.rangeInputSettings.scaleMax}" fixed="${rs.rangeInputSettings.scaleFixed}" width="90px" delta="${rs.rangeInputSettings.scaleDelta}"></range-input>
+                                ]</div>` : ""
+                            }
+                        </div>
+                        <div style="margin-top: 10px;">
+                            <button type="button" class="btn btn-success" id="acceptFullCalBtn-${t}">Accept Calibration</button>
+                            <button type="button" class="btn btn-secondary" id="cancelFullCalBtn-${t}">Cancel</button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>`);
+};
 
-$("body").append(magnetometerModal);
+CALIBRATION_ROUTINE_SETTINGS = {};
+CALIBRATION_ROUTINE_SETTINGS[CALIBRATION_TYPES.MAGNETOMETER] = {
+    type: CALIBRATION_TYPES.MAGNETOMETER,
+    text: {
+        name: "Magnetometer Calibration",
+        step1: "This is the calibration routine for the magnetometer. Follow the on-screen instructions to ensure accurate calibration.",
+        step2: "Select your calibration mode and settings below to begin data collection.  Make sure to rotate the torpedo in all directions during data collection.  Avoid large metal objects/magnetic fields nearby.",
+        step3: "Review the collected magnetometer data in the 3D plot below. You can choose to approve the calibration, reject it and start over, or collect more data.",
+        step4: "Compute and review the magnetometer calibration results below. You can adjust the calibration parameters manually if needed before accepting the calibration."
+    },
+    rangeInputSettings: {
+        biasMin: -1000000,
+        biasMax: 1000000,
+        biasFixed: 0,
+        biasDelta: 10,
+        scaleMin: -1000000,
+        scaleMax: 1000000,
+        scaleFixed: 0,
+        scaleDelta: 10,
+        finalBiasIdPrefix: "mag-bias-",
+        finalScaleIdPrefix: "mag-scale-",
+    },
+    includeScale: true,
+    units: "nT",
+};
+CALIBRATION_ROUTINE_SETTINGS[CALIBRATION_TYPES.ACCELEROMETER] = {
+    type: CALIBRATION_TYPES.ACCELEROMETER,
+    text: {
+        name: "Accelerometer Calibration",
+        step1: "This is the calibration routine for the accelerometer. Follow the on-screen instructions to ensure accurate calibration.",
+        step2: "Select your calibration mode and settings below to begin data collection.  Make sure to slowly rotate the torpedo in all directions during data collection.  Avoid sudden movements.",
+        step3: "Review the collected accelerometer data in the 3D plot below. You can choose to approve the calibration, reject it and start over, or collect more data.",
+        step4: "Compute and review the accelerometer calibration results below. You can adjust the calibration parameters manually if needed before accepting the calibration."
+    },
+    rangeInputSettings: {
+        biasMin: -10,
+        biasMax: 10,
+        biasFixed: 4,
+        biasDelta: 0.1,
+        scaleMin: -10,
+        scaleMax: 10,
+        scaleFixed: 4,
+        scaleDelta: 0.1,
+        finalBiasIdPrefix: "imu-accBias-",
+        finalScaleIdPrefix: "imu-accScale-",  
+    },
+    includeScale: true,
+    units: "g",
+};
+CALIBRATION_ROUTINE_SETTINGS[CALIBRATION_TYPES.GYROSCOPE] = {
+    type: CALIBRATION_TYPES.GYROSCOPE,
+    text: {
+        name: "Gyroscope Calibration",
+        step1: "This is the calibration routine for the gyroscope. Follow the on-screen instructions to ensure accurate calibration.",
+        step2: "Select your calibration mode and settings below to begin data collection.  Make sure the torpedo is completely stationary during data collection.",
+        step3: "Review the collected gyroscope data in the 3D plot below. You can choose to approve the calibration, reject it and start over, or collect more data.",
+        step4: "Compute and review the gyroscope calibration results below. You can adjust the calibration parameters manually if needed before accepting the calibration."
+    },
+    rangeInputSettings: {
+        biasMin: -500,
+        biasMax: 500,
+        biasFixed: 3,
+        biasDelta: 1,
+        finalBiasIdPrefix: "imu-gyrBias-",
+    },
+    includeScale: false,
+    units: "°/s",
+};
 
-const magCalModal = new bootstrap.Modal(magnetometerModal[0]);
-const magCalTabs = [
-    $("#step1-tab"),
-    $("#step2-tab"),
-    $("#step3-tab"),
-    $("#step4-tab")
-];
 
-$("#startMagCalBtn").on("click", () => {
-    magCalModal.show();
-    magCalTabs[0].show();
-    magCalTabs[1].hide();
-    magCalTabs[2].hide();
-    magCalTabs[3].hide();
-});
+$("body").append(calibrationModal(CALIBRATION_ROUTINE_SETTINGS[CALIBRATION_TYPES.MAGNETOMETER]));
+$("body").append(calibrationModal(CALIBRATION_ROUTINE_SETTINGS[CALIBRATION_TYPES.ACCELEROMETER]));
+$("body").append(calibrationModal(CALIBRATION_ROUTINE_SETTINGS[CALIBRATION_TYPES.GYROSCOPE]));
 
-// ------------------------------------------- Page 1
-$("#step1-next-mag").on("click", () => {
-    initializeStep2();
-});
+// ------------------------------------------- Start Calibration (main UI buttons)
+// Assuming #startMagCalBtn / #startAccCalBtn / #startGyroCalBtn exist elsewhere in the app
+$("#startMagCalBtn").on("click", () => startCalibration(CALIBRATION_TYPES.MAGNETOMETER));
+$("#startAccCalBtn").on("click", () => startCalibration(CALIBRATION_TYPES.ACCELEROMETER));
+$("#startGyroCalBtn").on("click", () => startCalibration(CALIBRATION_TYPES.GYROSCOPE));
 
-// ------------------------------------------- Page 2
-calibrationSettings = {
-    type: CALIBRATION_TYPES.MAGNETOMETER, // MAG
-    startSignal: CALIBRATION_START_SIGNAL.NOW, // PLUGGED_IN
-    dataCollectTimeMs: 30000,
-    waitMsAfterUnplug: 5000,
-    dataCollectRateHz: 5
+// ------------------------------------------- Generic per-routine state & helpers
+let currentRoutine = null; // { rs, modalInstance, tabs:[], calibrationSettings, checkInterval, calibrationData, countdownTimer }
+
+function idFor(name) {
+    return `#${name}-${currentRoutine.rs.type}`;
+}
+function el(name) {
+    return $(idFor(name));
 }
 
-let checkInterval = null;
+function startCalibration(type) {
+    const rs = CALIBRATION_ROUTINE_SETTINGS[type];
+    // show modal
+    currentRoutine = {
+        rs,
+        modalInstance: new bootstrap.Modal($(`#calibrationModal-${type}`)[0]),
+        tabs: [
+            $(`#step1-tab-${type}`),
+            $(`#step2-tab-${type}`),
+            $(`#step3-tab-${type}`),
+            $(`#step4-tab-${type}`)
+        ],
+        calibrationSettings: {
+            type: rs.type,
+            startSignal: CALIBRATION_START_SIGNAL.NOW,
+            dataCollectTimeMs: 30000,
+            waitMsAfterUnplug: 5000,
+            dataCollectRateHz: 5
+        },
+        checkInterval: null,
+        calibrationData: [],
+        countdownTimer: null
+    };
 
+    // show step1
+    currentRoutine.tabs[0].show();
+    currentRoutine.tabs[1].hide();
+    currentRoutine.tabs[2].hide();
+    currentRoutine.tabs[3].hide();
+
+    // bind step1-next for this routine
+    $(`#step1-next-${type}`).off('click').on('click', async () => {
+        // clear any prior data
+        currentRoutine.calibrationData = [];
+        await initializeStep2();
+    });
+
+    // show modal
+    currentRoutine.modalInstance.show();
+}
+
+// ------------------------------------------- Page 2 (generalized)
 async function initializeStep2() {
-    magCalTabs[0].hide();
-    magCalTabs[1].show();
+    const rs = currentRoutine.rs;
+    const tabs = currentRoutine.tabs;
+    tabs[0].hide();
+    tabs[1].show();
+    tabs[2].hide();
+    tabs[3].hide();
 
     await sendAction(controlCenterState.port, ACTION_IDS.CALIBRATION_MSG, {calibrationMessageType: CALIBRATION_MSG_TYPE.START});
 
     // Reset Step 2 inputs
-    $("#totalTimeSeconds").val(calibrationSettings.dataCollectTimeMs / 1000);
-    $("#waitSecondsAfterUnplug").val(calibrationSettings.waitMsAfterUnplug / 1000);
-    $("#dataAcquisitionRate").val(calibrationSettings.dataCollectRateHz);
-    $("#magCalStartMode").val("pluggedIn");
-    $("#magCalStartPluggedIn").show();
-    $("#magCalStartUnplugged").hide();
+    $(`#totalTimeSeconds-${rs.type}`).val(currentRoutine.calibrationSettings.dataCollectTimeMs / 1000);
+    $(`#waitSecondsAfterUnplug-${rs.type}`).val(currentRoutine.calibrationSettings.waitMsAfterUnplug / 1000);
+    $(`#dataAcquisitionRate-${rs.type}`).val(currentRoutine.calibrationSettings.dataCollectRateHz);
+    $(`#calStartMode-${rs.type}`).val("pluggedIn");
+    $(`#startPluggedIn-${rs.type}`).show();
+    $(`#startUnplugged-${rs.type}`).hide();
 
-    $("#waitForUnplug").show();
-    $("#waitingForData").hide();
+    $(`#waitingForUnplug-${rs.type}`).show();
+    $(`#waitingForData-${rs.type}`).hide();
+    $(`#startCalibration-${rs.type}`).prop("disabled", false);
+    $(`#calibCountdown-${rs.type}`).hide();
 
-    await sendAction(controlCenterState.port, ACTION_IDS.CALIBRATION_SETTINGS, calibrationSettings);
+    await new Promise(resolve => setTimeout(resolve, 100)); // wait for device
+
+    await sendAction(controlCenterState.port, ACTION_IDS.CALIBRATION_SETTINGS, currentRoutine.calibrationSettings);
 
     // check for disconnection at regular intervals
     const checkIntervalMs = 500;
-    checkInterval = setInterval(async () => {
+    if (currentRoutine.checkInterval) { clearInterval(currentRoutine.checkInterval); }
+    currentRoutine.checkInterval = setInterval(async () => {
         if (!controlCenterState.port || !controlCenterState.port.readable) {
-            $("#waitingForUnplug").hide();
-            $("#waitingForData").show();
+            $(`#waitingForUnplug-${rs.type}`).hide();
+            $(`#waitingForData-${rs.type}`).show();
             startAwaitingData();
-            clearInterval(checkInterval);
-            checkInterval = null;
+            clearInterval(currentRoutine.checkInterval);
+            currentRoutine.checkInterval = null;
         }
     }, checkIntervalMs);
-}
 
-$("#totalTimeSeconds").on("change", (e) => {
-    const totalTimeSeconds = parseInt(e.target.value);
-    calibrationSettings.dataCollectTimeMs = totalTimeSeconds * 1000;
-    sendAction(controlCenterState.port, ACTION_IDS.CALIBRATION_SETTINGS, calibrationSettings);
-});
+    // create plotly live data plot
+    const liveDataLayout = { margin: { t: 0, b: 0, l: 0, r: 0 }, scene: { aspectmode: 'cube' } };
+    Plotly.newPlot(`liveDataPlot-${rs.type}`, [{ x: [], y: [], z: [], mode: 'markers', type: 'scatter3d', marker: { size: 2, color: 'blue' } }], liveDataLayout);
 
-$("#waitSecondsAfterUnplug").on("change", (e) => {
-    const waitSecondsAfterUnplug = parseInt(e.target.value);
-    calibrationSettings.waitMsAfterUnplug = waitSecondsAfterUnplug * 1000;
-    sendAction(controlCenterState.port, ACTION_IDS.CALIBRATION_SETTINGS, calibrationSettings);
-});
-
-$("#dataAcquisitionRate").on("change", (e) => {
-    const dataAcquisitionRate = parseInt(e.target.value);
-    calibrationSettings.dataCollectRateHz = dataAcquisitionRate;
-    sendAction(controlCenterState.port, ACTION_IDS.CALIBRATION_SETTINGS, calibrationSettings);
-});
-
-$("#magCalStartMode").on("change", (e) => {
-    const mode = e.target.value;
-
-    if (mode == "pluggedIn") {
-        $("#magCalStartPluggedIn").show();
-        $("#magCalStartUnplugged").hide();
-        calibrationSettings.startSignal = CALIBRATION_START_SIGNAL.NOW;
-    } else if (mode == "unplugToCalibrate") {
-        $("#magCalStartPluggedIn").hide();
-        $("#magCalStartUnplugged").show();
-        calibrationSettings.startSignal = CALIBRATION_START_SIGNAL.ON_UNPLUG;
+    // rotate the plot over time for better viewing (store interval on routine to avoid duplicates)
+    if (!currentRoutine._rotateInterval) {
+        let angle = 0;
+        currentRoutine._rotateInterval = setInterval(() => {
+            angle += 0.01;
+            const camera = { eye: { x: 1.5 * Math.cos(angle), y: 1.5 * Math.sin(angle), z: 1.5 } };
+            Plotly.relayout(`liveDataPlot-${rs.type}`, { 'scene.camera': camera });
+        }, 50);
     }
 
-    sendAction(controlCenterState.port, ACTION_IDS.CALIBRATION_SETTINGS, calibrationSettings);
-});
+    // bind inputs for this routine
+    $(`#totalTimeSeconds-${rs.type}`).off('change').on('change', (e) => {
+        const totalTimeSeconds = parseInt(e.target.value);
+        currentRoutine.calibrationSettings.dataCollectTimeMs = totalTimeSeconds * 1000;
+        sendAction(controlCenterState.port, ACTION_IDS.CALIBRATION_SETTINGS, currentRoutine.calibrationSettings);
+    });
 
-$("#startMagCalibration").on("click", async () => {
-    await sendAction(controlCenterState.port, ACTION_IDS.CALIBRATION_MSG, {calibrationMessageType: CALIBRATION_MSG_TYPE.START});
-    $("#startMagCalibration").prop("disabled", true);
+    $(`#waitSecondsAfterUnplug-${rs.type}`).off('change').on('change', (e) => {
+        const waitSecondsAfterUnplug = parseInt(e.target.value);
+        currentRoutine.calibrationSettings.waitMsAfterUnplug = waitSecondsAfterUnplug * 1000;
+        sendAction(controlCenterState.port, ACTION_IDS.CALIBRATION_SETTINGS, currentRoutine.calibrationSettings);
+    });
 
-    startAwaitingData();
-});
+    $(`#dataAcquisitionRate-${rs.type}`).off('change').on('change', (e) => {
+        const dataAcquisitionRate = parseInt(e.target.value);
+        currentRoutine.calibrationSettings.dataCollectRateHz = dataAcquisitionRate;
+        sendAction(controlCenterState.port, ACTION_IDS.CALIBRATION_SETTINGS, currentRoutine.calibrationSettings);
+    });
 
-let calibrationData = [];
+    $(`#calStartMode-${rs.type}`).off('change').on('change', (e) => {
+        const mode = e.target.value;
+        if (mode == "pluggedIn") {
+            $(`#startPluggedIn-${rs.type}`).show();
+            $(`#startUnplugged-${rs.type}`).hide();
+            currentRoutine.calibrationSettings.startSignal = CALIBRATION_START_SIGNAL.NOW;
+        } else {
+            $(`#startPluggedIn-${rs.type}`).hide();
+            $(`#startUnplugged-${rs.type}`).show();
+            currentRoutine.calibrationSettings.startSignal = CALIBRATION_START_SIGNAL.ON_UNPLUG;
+        }
+        sendAction(controlCenterState.port, ACTION_IDS.CALIBRATION_SETTINGS, currentRoutine.calibrationSettings);
+    });
 
+    $(`#startCalibration-${rs.type}`).off('click').on('click', async () => {
+        await sendAction(controlCenterState.port, ACTION_IDS.CALIBRATION_MSG, {calibrationMessageType: CALIBRATION_MSG_TYPE.START});
+        $(`#startCalibration-${rs.type}`).prop("disabled", true);
+        $(`#calibCountdown-${rs.type}`).show();
+
+        // Start countdown timer
+        let timeLeftMs = currentRoutine.calibrationSettings.dataCollectTimeMs;
+        $(`#countdownValue-${rs.type}`).text((timeLeftMs / 1000).toString());
+
+        if (currentRoutine.countdownTimer) { clearInterval(currentRoutine.countdownTimer); }
+        currentRoutine.countdownTimer = setInterval(() => {
+            timeLeftMs -= 100;
+            $(`#countdownValue-${rs.type}`).text(Math.max(0, (timeLeftMs / 1000)).toString());
+            if (timeLeftMs <= 0) {
+                clearInterval(currentRoutine.countdownTimer);
+                $(`#calibCountdown-${rs.type}`).hide();
+                currentRoutine.countdownTimer = null;
+            }
+        }, 100);
+        startAwaitingData();
+    });
+}
+
+// ------------------------------------------- Awaiting data (general)
 async function startAwaitingData() {
+    const rs = currentRoutine.rs;
     let msg;
-
     do {
-        msg = await recieveWait({isExpectedMessage: (msg) => {
-            msg.type == MESSAGE_IDS.CALIBRATION_DATA
-        }});
+        msg = await recieveWait({isExpectedMessage: (msg) => msg.id == MESSAGE_IDS.CALIBRATION_DATA });
+        console.log("Calibration data message received:", msg);
+        currentRoutine.calibrationData = currentRoutine.calibrationData.concat(msg.vectors);
 
-        calibrationData = calibrationData.concat(msg.vectors);
-    } while (msg.isComplete);
+        // Update live data plot if in plugged in mode
+        if (currentRoutine.calibrationSettings.startSignal == CALIBRATION_START_SIGNAL.NOW) {
+            const xData = currentRoutine.calibrationData.map(v => v[0]);
+            const yData = currentRoutine.calibrationData.map(v => v[1]);
+            const zData = currentRoutine.calibrationData.map(v => v[2]);
+            Plotly.update(`liveDataPlot-${rs.type}`, { x: [xData], y: [yData], z: [zData] });
+        }
+    } while (!msg.isComplete);
 
     // Move to Step 3 tab
     initializeStep3();
 }
 
-// ------------------------------------------- Page 3
+// ------------------------------------------- Page 3 (general)
 function initializeStep3() {
-    magCalTabs[1].hide();
-    magCalTabs[2].show();
-    if (checkInterval != null) {
-        clearInterval(checkInterval);
-        checkInterval = null;
+    const rs = currentRoutine.rs;
+    const tabs = currentRoutine.tabs;
+    tabs[0].hide();
+    tabs[1].hide();
+    tabs[2].show();
+    tabs[3].hide();
+
+    if (currentRoutine.checkInterval != null) {
+        clearInterval(currentRoutine.checkInterval);
+        currentRoutine.checkInterval = null;
     }
+
+    updateCollectedDataPlot();
+
+    // bind page 3 buttons for this routine
+    $(`#collectMoreCalBtn-${rs.type}`).off('click').on('click', async () => {
+        await sendAction(controlCenterState.port, ACTION_IDS.CALIBRATION_MSG, {calibrationMessageType: CALIBRATION_MSG_TYPE.GO_AGAIN});
+        await initializeStep2();
+    });
+
+    $(`#approveCalBtn-${rs.type}`).off('click').on('click', async () => {
+        await sendAction(controlCenterState.port, ACTION_IDS.CALIBRATION_MSG, {calibrationMessageType: CALIBRATION_MSG_TYPE.DONE});
+        initializeStep4();
+    });
+
+    $(`#rejectCalBtn-${rs.type}`).off('click').on('click', async () => {
+        await sendAction(controlCenterState.port, ACTION_IDS.CALIBRATION_MSG, {calibrationMessageType: CALIBRATION_MSG_TYPE.DONE});
+        // go back to step 1 (reset)
+        currentRoutine.modalInstance.hide();
+        startCalibration(rs.type);
+    });
+
+    $(`#removeOutliersBtn-${rs.type}`).off('click').on('click', () => {
+        const data = currentRoutine.calibrationData;
+        if (!data.length) return;
+        const meanPoint = data.reduce((acc, val) => [acc[0] + val[0], acc[1] + val[1], acc[2] + val[2]], [0,0,0]).map(v => v / data.length);
+        const distances = data.map(v => Math.sqrt((v[0]-meanPoint[0])**2 + (v[1]-meanPoint[1])**2 + (v[2]-meanPoint[2])**2));
+        const meanDistance = distances.reduce((a,b)=>a+b,0)/distances.length;
+        const stdDevDistance = Math.sqrt(distances.map(d => (d-meanDistance)**2).reduce((a,b)=>a+b,0)/distances.length);
+        const threshold = 2 * stdDevDistance;
+        currentRoutine.calibrationData = data.filter((v,i) => Math.abs(distances[i] - meanDistance) <= threshold);
+        updateCollectedDataPlot();
+    });
+}
+
+function updateCollectedDataPlot() {
+    const rs = currentRoutine.rs;
+    const data = currentRoutine.calibrationData;
+    const xData = data.map(v => v[0]);
+    const yData = data.map(v => v[1]);
+    const zData = data.map(v => v[2]);
+    const layout = { margin:{t:0,b:0,l:0,r:0}, scene:{aspectmode:'cube'} };
+    Plotly.newPlot(`collectedDataPlot-${rs.type}`, [{ x:xData, y:yData, z:zData, mode:'markers', type:'scatter3d', marker:{size:2,color:'blue'} }], layout);
+}
+
+// ------------------------------------------- Page 4 (general)
+function initializeStep4() {
+    const rs = currentRoutine.rs;
+    const tabs = currentRoutine.tabs;
+    tabs[0].hide();
+    tabs[1].hide();
+    tabs[2].hide();
+    tabs[3].show();
+
+    // initial plot of raw data
+    const data = currentRoutine.calibrationData;
+    const xData = data.map(v => v[0]);
+    const yData = data.map(v => v[1]);
+    const zData = data.map(v => v[2]);
+    const resultsLayout = { margin:{t:0,b:0,l:0,r:0}, scene:{aspectmode:'cube', xaxis:{min:-1.2,max:1.2}, yaxis:{min:-1.2,max:1.2}, zaxis:{min:-1.2,max:1.2}} };
+    Plotly.newPlot(`resultsPlot-${rs.type}`, [{ x:xData, y:yData, z:zData, mode:'markers', type:'scatter3d', marker:{size:2,color:'blue'} }], resultsLayout);
+
+    // bind back button
+    $(`#backToStep3Btn-${rs.type}`).off('click').on('click', () => {
+        tabs[2].show();
+        tabs[3].hide();
+        initializeStep3();
+    });
+
+    // bind compute
+    $(`#computeCalBtn-${rs.type}`).off('click').on('click', () => {
+        const calibType = $(`#calTypeSelect-${rs.type}`).val();
+        
+        if (rs.type == CALIBRATION_TYPES.GYROSCOPE) {
+            // gyro only bias
+            const bias = [
+                currentRoutine.calibrationData.reduce((acc, val) => acc + val[0], 0) / currentRoutine.calibrationData.length,
+                currentRoutine.calibrationData.reduce((acc, val) => acc + val[1], 0) / currentRoutine.calibrationData.length,
+                currentRoutine.calibrationData.reduce((acc, val) => acc + val[2], 0) / currentRoutine.calibrationData.length
+            ];
+            const scale = [1,1,1];
+            updateCalResults(bias, scale);
+        } else {
+            let bias = [0,0,0], scale = [1,1,1];
+            if (calibType == "ellipseFit") {
+                const result = computeEllipseFitCalibration(currentRoutine.calibrationData);
+                bias = result.bias;
+                scale = result.scale;
+            } else {
+                const result = computeMinMaxCalibration(currentRoutine.calibrationData);
+                bias = result.bias;
+                scale = result.scale;
+            }
+            updateCalResults(bias, scale);
+        }
+    });
+
+    // bind accept/cancel
+    $(`#acceptFullCalBtn-${rs.type}`).off('click').on('click', () => {
+        // write values to global inputs (assumes ids mag/acc/gyro bias/scale exist)
+        for (let i = 0; i < 3; i++) {
+            $(`#${rs.rangeInputSettings.finalBiasIdPrefix}${i}`)[0]?.setVal?.(currentRoutine.calibrationData.bias?.[i] ?? 0);
+            $(`#${rs.rangeInputSettings.finalBiasIdPrefix}${i}`)[0]?.input.trigger('change');
+
+            if (rs.includeScale) {
+                $(`#${rs.rangeInputSettings.finalScaleIdPrefix}${i}`)[0]?.setVal?.(currentRoutine.calibrationData.scale?.[i] ?? 1);
+                $(`#${rs.rangeInputSettings.finalScaleIdPrefix}${i}`)[0]?.input.trigger('change');
+            }
+        }
+
+        currentRoutine.modalInstance.hide();
+        currentRoutine = null;
+    });
+
+    $(`#cancelFullCalBtn-${rs.type}`).off('click').on('click', () => {
+        currentRoutine.modalInstance.hide();
+        currentRoutine = null;
+    });
+}
+
+function updateCalResults(bias, scale) {
+    const rs = currentRoutine.rs;
+    // update range-inputs
+    $(`#bias-0-calib-${rs.type}`)[0].setVal(bias[0]);
+    $(`#bias-1-calib-${rs.type}`)[0].setVal(bias[1]);
+    $(`#bias-2-calib-${rs.type}`)[0].setVal(bias[2]);
+    if (rs.includeScale) {
+        $(`#scale-0-calib-${rs.type}`)[0].setVal(scale[0]);
+        $(`#scale-1-calib-${rs.type}`)[0].setVal(scale[1]);
+        $(`#scale-2-calib-${rs.type}`)[0].setVal(scale[2]);
+    }
+
+    currentRoutine.calibrationData.bias = bias;
+    currentRoutine.calibrationData.scale = scale;
+
+    // Update the 3D plot with calibrated data
+    const calibratedData = currentRoutine.calibrationData.map(v => [
+        (v[0] - bias[0]) / scale[0],
+        (v[1] - bias[1]) / scale[1],
+        (v[2] - bias[2]) / scale[2]
+    ]);
+    const xData = calibratedData.map(v => v[0]);
+    const yData = calibratedData.map(v => v[1]);
+    const zData = calibratedData.map(v => v[2]);
+    const resultsLayout = { margin:{t:0,b:0,l:0,r:0}, scene:{aspectmode:'cube', xaxis:{min:-1.2,max:1.2}, yaxis:{min:-1.2,max:1.2}, zaxis:{min:-1.2,max:1.2}} };
+    Plotly.newPlot(`resultsPlot-${rs.type}`, [{ x:xData, y:yData, z:zData, mode:'markers', type:'scatter3d', marker:{size:2,color:'green'} }], resultsLayout);
+}
+
+// ---------------------------------------- Utility functions for calibration computations
+/// fit an elipse using least squares based on http://www.juddzone.com/ALGORITHMS/least_squares_3D_ellipsoid.html
+function computeEllipseFitCalibration(data) {
+    // using math.js for matrix operations
+    let A = math.matrix(data.map(v => [
+        v[0] * v[0], 
+        v[1] * v[1], 
+        v[2] * v[2],
+        v[0] * v[1],
+        v[0] * v[2],
+        v[1] * v[2],
+        v[0], 
+        v[1], 
+        v[2]
+    ]));
+
+    let b = math.matrix(data.map(v => [1]));
+
+    let At = math.transpose(A);
+    let AtA = math.multiply(At, A);
+    let Atb = math.multiply(At, b);
+    
+    let coeffs = math.lusolve(AtA, Atb);
+    coeffs = coeffs.valueOf().map(v => v[0]); // flatten
+    coeffs.push(-1); // add the constant term
+
+    let params = polyToParams3D(coeffs);
+
+    return { bias: params.center, scale: params.axes };
+}
+
+function polyToParams3D(vec) {
+    // convert the polynomial form of the 3D-ellipsoid to parameters
+    // center, axes, and transformation matrix
+    // vec is the vector whose elements are the polynomial
+    // coefficients A..J
+    // returns (center, axes, rotation matrix)
+
+    //Algebraic form: X.T * Amat * X --> polynomial form
+
+    let Amat = math.matrix([
+        [ vec[0],     vec[3]/2.0, vec[4]/2.0, vec[6]/2.0 ],
+        [ vec[3]/2.0, vec[1],     vec[5]/2.0, vec[7]/2.0 ],
+        [ vec[4]/2.0, vec[5]/2.0, vec[2],     vec[8]/2.0 ],
+        [ vec[6]/2.0, vec[  7]/2.0, vec[8]/2.0, vec[9]     ]
+    ]);
+
+    //See B.Bartoni, Preprint SMU-HEP-10-14 Multi-dimensional Ellipsoidal Fitting
+    // equation 20 for the following method for finding the center
+    let A3 = math.subset(Amat, math.index([0,1,2], [0,1,2]));
+    let A3inv = math.inv(A3);
+    let ofs = vec.slice(6,9).map(v => v / 2.0);
+    let center = math.multiply(-1, math.multiply(A3inv, math.matrix(ofs)));
+
+    // Center the ellipsoid at the origin
+    let Tofs = math.identity(4);
+    Tofs.subset(math.index(3, [0,1,2]), center);
+    let R = math.multiply(Tofs, math.multiply(Amat, math.transpose(Tofs)));
+
+    let R3 = math.subset(R, math.index([0,1,2], [0,1,2]));
+    let R3test = math.divide(R3, R3.subset(math.index(0,0)));
+    
+    let s1 = -R.subset(math.index(3, 3));
+    let R3S = math.divide(R3, s1);
+    let eig = math.eigs(R3S.valueOf());
+    let el = eig.values;
+    let ec = math.matrix(eig.vectors);
+
+    let recip = el.map(v => 1.0 / Math.abs(v));
+    let axes = recip.map(v => Math.sqrt(v));
+
+    let inve = math.transpose(math.matrix(ec)); //inverse is actually the transpose here
+    
+    return { center: center.valueOf(), axes: axes, rotationMatrix: inve.valueOf() };
+}
+
+function computeMinMaxCalibration(data) {
+    let min = [Infinity, Infinity, Infinity];
+    let max = [-Infinity, -Infinity, -Infinity];
+
+    data.forEach(v => {
+        for (let i = 0; i < 3; i++) {
+            if (v[i] < min[i]) min[i] = v[i];
+            if (v[i] > max[i]) max[i] = v[i];
+        }
+    });
+
+    const bias = [
+        (max[0] + min[0]) / 2,
+        (max[1] + min[1]) / 2,
+        (max[2] + min[2]) / 2
+    ];
+
+    const scale = [
+        (max[0] - min[0]) / 2,
+        (max[1] - min[1]) / 2,
+        (max[2] - min[2]) / 2
+    ];
+
+    return { bias, scale };
 }

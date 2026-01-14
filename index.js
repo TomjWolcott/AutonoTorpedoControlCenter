@@ -10,6 +10,8 @@ controlCenterState = {
     configurations: {},
     data: {
         t: [],
+        batt_v: [],
+        temp_c: [],
         magX: [],
         magY: [],
         magZ: [],
@@ -19,6 +21,12 @@ controlCenterState = {
         gyrX: [],
         gyrY: [],
         gyrZ: [],
+        pos_x: [],
+        pos_y: [],
+        pos_z: [],
+        yaw: [],
+        pitch: [],
+        roll: [],
     }
 };
 

@@ -16,6 +16,14 @@ const axisSettings = {
     magX: { label: "Magnetometer X (nT)" },
     magY: { label: "Magnetometer Y (nT)" },
     magZ: { label: "Magnetometer Z (nT)" },
+    batt_v: { label: "Battery Voltage (V)" },
+    temp_c: { label: "Temperature (°C)" },
+    pos_x: { label: "Position X (m)" },
+    pos_y: { label: "Position Y (m)" },
+    pos_z: { label: "Position Z (m)" },
+    yaw: { label: "Yaw (°)" },
+    pitch: { label: "Pitch (°)" },
+    roll: { label: "Roll (°)" },
     pressure: { label: "Pressure (Pa)" },
     temperature: { label: "Temperature (°C)" }
 }
@@ -284,4 +292,11 @@ $("#btn-export-all-csv").on("click", () => {
 
     link.click();
     document.body.removeChild(link);
+});
+
+$("#btn-clear-all").on("click", () => {
+    for (const key in controlCenterState.data) {
+        controlCenterState.data[key] = [];
+    }
+    initializePlot();
 });

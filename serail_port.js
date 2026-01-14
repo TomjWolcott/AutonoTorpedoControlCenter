@@ -264,13 +264,19 @@ function arraysEqual(a, b) {
     return a.length === b.length && a.every((val, index) => { return val === b[index]; });
 }
 
-function floatToIEEE754(float) {
+function floatToIEEE754(float, reverse=true) {
     let floatArray = new Float32Array(1);
     floatArray[0] = float;
-    return new Uint8Array(floatArray.buffer);
+    let bytes = new Uint8Array(floatArray.buffer);
+    if (reverse) {
+        bytes = bytes.reverse();
+    }
+    return bytes;
 }
-
-function IEEE754ToFloat(bytes) {
+function IEEE754ToFloat(bytes, reverse=true) {
+    if (reverse) {
+        bytes = bytes.reverse();
+    }
     let byteArray = new Uint8Array(bytes);
     let floatArray = new Float32Array(byteArray.buffer);
     return floatArray[0];
@@ -285,8 +291,8 @@ const ACTION_IDS = {
 }
 
 const CALIBRATION_TYPES = {
-    MAGNETOMETER: 0,
-    ACCELEROMETER: 1,
+    MAGNETOMETER: 1,
+    ACCELEROMETER: 0,
     GYROSCOPE: 2,
 }
 
@@ -308,14 +314,15 @@ async function sendAction(port, action, actionData = null) {
 
     switch (action) {
         case (ACTION_IDS.CALIBRATION_SETTINGS):
-            data = new Uint8Array([...MESSAGE_HEADER, 14, MESSAGE_IDS.ACTION, action,
-                actionData.calibrationType,
-                (actionData.waitAfterUnplugMs >> 8) & 0xFF,
-                actionData.waitAfterUnplugMs & 0xFF,
-                (actionData.dataCollectionRateHz >> 8) & 0xFF,
-                actionData.dataCollectionRateHz & 0xFF,
-                (actionData.dataCollectionTimeMs >> 8) & 0xFF,
-                actionData.dataCollectionTimeMs & 0xFF
+            data = new Uint8Array([...MESSAGE_HEADER, 15, MESSAGE_IDS.ACTION, action,
+                actionData.type,
+                actionData.startSignal,
+                (actionData.waitMsAfterUnplug >> 8) & 0xFF,
+                actionData.waitMsAfterUnplug & 0xFF,
+                (actionData.dataCollectRateHz >> 8) & 0xFF,
+                actionData.dataCollectRateHz & 0xFF,
+                (actionData.dataCollectTimeMs >> 8) & 0xFF,
+                actionData.dataCollectTimeMs & 0xFF
             ]);
             break;
         case (ACTION_IDS.SPIN_MOTOR):
@@ -327,9 +334,12 @@ async function sendAction(port, action, actionData = null) {
             ]);
             break;
         case (ACTION_IDS.CALIBRATION_MSG):
-            data = new Uint8Array([...MESSAGE_HEADER, 7, MESSAGE_IDS.ACTION, action,
+            data = new Uint8Array([...MESSAGE_HEADER, 8, MESSAGE_IDS.ACTION, action,
                 actionData.calibrationMessageType
             ]);
+            break;
+        case (ACTION_IDS.SEND_CONFIG):
+            data = new Uint8Array([...MESSAGE_HEADER, 7, MESSAGE_IDS.ACTION, action]);
             break;
     }
 
@@ -354,7 +364,12 @@ async function sendAction(port, action, actionData = null) {
  *      motors_maximum_duty|motors_duty_scaler
  * ] */
 function convertConfigurationToMessage(configObj) {
+    let now = Date.now();
     return new Uint8Array([
+        // date sent
+        Math.floor(now / 2**56) % 256, Math.floor(now / 2**48) % 256, Math.floor(now / 2**40) % 256, Math.floor(now / 2**32) % 256,
+        Math.floor(now / 2**24) % 256, Math.floor(now / 2**16) % 256, Math.floor(now / 2**8) % 256, now % 256,
+
         // mag bias
         ...floatToIEEE754(configObj.mag.bias[0]), ...floatToIEEE754(configObj.mag.bias[1]), ...floatToIEEE754(configObj.mag.bias[2]),
         // mag scale
@@ -389,7 +404,13 @@ function convertConfigurationToMessage(configObj) {
 }
 
 function convertMessageToConfiguration(message) {
+    let date_bytes = message.slice(0, 8);
+    message = message.slice(8);
+    message = [...message];
+
     return {
+        dateUploaded: new Date(date_bytes[0] * 2**56 + date_bytes[1] * 2**48 + date_bytes[2] * 2**40 + date_bytes[3] * 2**32 +
+                      date_bytes[4] * 2**24 + date_bytes[5] * 2**16 + date_bytes[6] * 2**8  + date_bytes[7]),
         mag: {
             bias: [
                 IEEE754ToFloat(message.splice(0, 4)),
@@ -461,7 +482,7 @@ function convertMessageToConfiguration(message) {
 
 async function sendConfiguration(port, configObj) {
     let writer = port.writable.getWriter();
-    let data = new Uint8Array([...MESSAGE_HEADER, 158, MESSAGE_IDS.SEND_CONFIG,
+    let data = new Uint8Array([...MESSAGE_HEADER, 166, MESSAGE_IDS.SEND_CONFIG,
         ...convertConfigurationToMessage(configObj)
     ]);
 
@@ -521,6 +542,8 @@ const DATA_SENT_BITFLAGS = {
 function convertData(flags, data) {
     let obj = {};
 
+    data = [...data];
+
     while (flags != 0) {
         if (flags & DATA_SENT_BITFLAGS.ADC_DATA) {
             temp_c = ((data[2] << 8) | data[3]);
@@ -548,8 +571,6 @@ function convertData(flags, data) {
                 ((data[8] & 0x80) ? -(2.0**31.0) : 0) + (((data[8] & 0x7F) << 24) | (data[9] << 16) | (data[10] << 8) | data[11]),
             ];
 
-            obj.mag = obj.mag.map((v, i) => (v - magBias[i]) * magScale[i]);
-
             flags &= (0xFF ^ DATA_SENT_BITFLAGS.MAG);
             data = data.slice(12);
 
@@ -567,11 +588,34 @@ function convertData(flags, data) {
                 ]
             };
 
-            obj.accGyro.acc = obj.accGyro.acc.map((v, i) => (v - accBias[i]) * accScale[i]);
-            obj.accGyro.gyro = obj.accGyro.gyro;//.map((v, i) => (v - magBias[i]) * magScale[i]);
-
             flags &= (0xFF ^ DATA_SENT_BITFLAGS.ACC_GYRO);
             data = data.slice(12);
+        } else if (flags & DATA_SENT_BITFLAGS.LOCALIZED_DATA) {
+            obj.localization_data = data.slice(0, 28);
+            let orientation = new Quaternion(
+                IEEE754ToFloat(data.splice(0, 4)),
+                IEEE754ToFloat(data.splice(0, 4)),
+                IEEE754ToFloat(data.splice(0, 4)),
+                IEEE754ToFloat(data.splice(0, 4))
+            );
+
+            let [yaw, pitch, roll] = orientation.toEuler("ZYX");
+
+            obj.localization = {
+                orientation: orientation,
+                euler: {
+                    roll: roll * (180.0 / Math.PI),
+                    pitch: pitch * (180.0 / Math.PI),
+                    yaw: yaw * (180.0 / Math.PI)
+                },
+                position: [
+                    IEEE754ToFloat(data.splice(0, 4)),
+                    IEEE754ToFloat(data.splice(0, 4)),
+                    IEEE754ToFloat(data.splice(0, 4))
+                ]
+            };
+
+            flags &= (0xFF ^ DATA_SENT_BITFLAGS.LOCALIZED_DATA);
         } else if (flags & DATA_SENT_BITFLAGS.OTHER_DATA) {
             obj.otherData = {
                 timestamp_s: ((data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3]) / 1000000.0,

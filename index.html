@@ -13,6 +13,8 @@
         }
     }
     </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.8.0/math.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/quaternion@2.2.0/dist/quaternion.min.js"></script>
     <title>AutonoTorpedo Control Center V1</title>
     <style>
         .accordion {
@@ -157,14 +159,14 @@
                                     </datalist>
                                     <br>-->
                                     <div>Magnetometer Bias: [
-                                        <range-input class="config-input" id="mag-bias-0" min="-100000" max="100000" fixed="0" width="70px" delta="10" default="0"></range-input>μT, 
-                                        <range-input class="config-input" id="mag-bias-1" min="-100000" max="100000" fixed="0" width="70px" delta="10" default="0"></range-input>μT, 
-                                        <range-input class="config-input" id="mag-bias-2" min="-100000" max="100000" fixed="0" width="70px" delta="10" default="0"></range-input>μT
+                                        <range-input class="config-input" id="mag-bias-0" min="-100000" max="100000" fixed="0" width="80px" delta="10" default="0"></range-input>nT, 
+                                        <range-input class="config-input" id="mag-bias-1" min="-100000" max="100000" fixed="0" width="80px" delta="10" default="0"></range-input>nT, 
+                                        <range-input class="config-input" id="mag-bias-2" min="-100000" max="100000" fixed="0" width="80px" delta="10" default="0"></range-input>nT
                                     ]</div>
                                     <div>Magnetometer Scale: [
-                                        <range-input class="config-input" id="mag-scale-0" min="-10" max="10" fixed="3" width="60px"></range-input>, 
-                                        <range-input class="config-input" id="mag-scale-1" min="-10" max="10" fixed="3" width="60px"></range-input>, 
-                                        <range-input class="config-input" id="mag-scale-2" min="-10" max="10" fixed="3" width="60px"></range-input>
+                                        <range-input class="config-input" id="mag-scale-0" min="-100000" max="100000" fixed="0" width="80px" delta="10"></range-input>, 
+                                        <range-input class="config-input" id="mag-scale-1" min="-100000" max="100000" fixed="0" width="80px" delta="10"></range-input>, 
+                                        <range-input class="config-input" id="mag-scale-2" min="-100000" max="100000" fixed="0" width="80px" delta="10"></range-input>
                                     ]</div>
                                     <br>
                                     <button id="startMagCalBtn" type="button" class="btn btn-primary">Run Calibration Routine</button>
@@ -177,26 +179,26 @@
                                     </datalist>
                                     <br>-->
                                     <div>Accelerometer Bias: [
-                                        <range-input class="config-input" id="imu-accBias-0" min="-10" max="10" fixed="3" width="60px" default="0"></range-input>g, 
-                                        <range-input class="config-input" id="imu-accBias-1" min="-10" max="10" fixed="3" width="60px" default="0"></range-input>g, 
-                                        <range-input class="config-input" id="imu-accBias-2" min="-10" max="10" fixed="3" width="60px" default="0"></range-input>g
+                                        <range-input class="config-input" id="imu-accBias-0" min="-10" max="10" fixed="3" width="80px" default="0"></range-input>g, 
+                                        <range-input class="config-input" id="imu-accBias-1" min="-10" max="10" fixed="3" width="80px" default="0"></range-input>g, 
+                                        <range-input class="config-input" id="imu-accBias-2" min="-10" max="10" fixed="3" width="80px" default="0"></range-input>g
                                     ]</div>
                                     <div>Accelerometer Scale: [
-                                        <range-input class="config-input" id="imu-accScale-0" min="-10" max="10" fixed="3" width="60px"></range-input>, 
-                                        <range-input class="config-input" id="imu-accScale-1" min="-10" max="10" fixed="3" width="60px"></range-input>, 
-                                        <range-input class="config-input" id="imu-accScale-2" min="-10" max="10" fixed="3" width="60px"></range-input>
+                                        <range-input class="config-input" id="imu-accScale-0" min="-10" max="10" fixed="3" width="80px"></range-input>, 
+                                        <range-input class="config-input" id="imu-accScale-1" min="-10" max="10" fixed="3" width="80px"></range-input>, 
+                                        <range-input class="config-input" id="imu-accScale-2" min="-10" max="10" fixed="3" width="80px"></range-input>
                                     ]</div>
                                     <div>Gyroscope Bias: [
-                                        <range-input class="config-input" id="imu-gyrBias-0" min="-10" max="10" fixed="3" width="60px" default="0"></range-input>dps, 
-                                        <range-input class="config-input" id="imu-gyrBias-1" min="-10" max="10" fixed="3" width="60px" default="0"></range-input>dps, 
-                                        <range-input class="config-input" id="imu-gyrBias-2" min="-10" max="10" fixed="3" width="60px" default="0"></range-input>dps
+                                        <range-input class="config-input" id="imu-gyrBias-0" min="-10" max="10" fixed="3" width="80px" default="0"></range-input>°/s, 
+                                        <range-input class="config-input" id="imu-gyrBias-1" min="-10" max="10" fixed="3" width="80px" default="0"></range-input>°/s, 
+                                        <range-input class="config-input" id="imu-gyrBias-2" min="-10" max="10" fixed="3" width="80px" default="0"></range-input>°/s
                                     ]</div>
                                     <br>
                                     <button id="startAccCalBtn" type="button" class="btn btn-primary mb-3">Run Accelerometer Calibration Routine</button>
-                                    <button id="startGyrCalBtn" type="button" class="btn btn-primary">Run Gyroscope Calibration Routine</button>
+                                    <button id="startGyroCalBtn" type="button" class="btn btn-primary">Run Gyroscope Calibration Routine</button>
                                 </div>
                                 <div class="dataGroup configDataGroup" id="localizationConfigSettings">
-                                    <div>Madgwick Filter β: <range-input class="config-input" id="localization-madgwickBeta" min="0" max="10" fixed="4" width="80px"></range-input></div>
+                                    <div>Madgwick Filter β: <range-input class="config-input" id="localization-madgwickBeta" min="0" max="1" fixed="4" width="80px"></range-input></div>
                                 </div>
                                 <div class="dataGroup configDataGroup" id="motorsConfigSettings">
                                     <div>Maximum motor input: <range-input class="config-input" id="motors-maximumDuty" min="0" max="1" fixed="3" width="60px" default="1"></range-input></div>
@@ -331,6 +333,7 @@
                             </div>
                             <!-- <button type="button" class="btn btn-primary" id="btn-export-selection-csv">Export selection to CSV</button> -->
                             <button type="button" class="btn btn-primary" id="btn-export-all-csv">Export all data to CSV</button>
+                            <button type="button" class="btn btn-primary" id="btn-clear-all">Clear all data</button>
                         </div>
                         </div>
                     </div>
@@ -369,6 +372,39 @@
                                     <range-input type="display" id="gyr-1" width="70px"></range-input>dps, 
                                     <range-input type="display" id="gyr-2" width="70px"></range-input>dps
                                 ]</span></div>
+                            </div>
+                            <b>Localization Data: </b>
+                            <div class="dataGroup" id="localizationCollapse">
+                                <div>Calibrated Magnetometer: <span id="magData">[
+                                    <range-input type="display" id="cal-mag-0" width="70px"></range-input>γ, 
+                                    <range-input type="display" id="cal-mag-1" width="70px"></range-input>γ, 
+                                    <range-input type="display" id="cal-mag-2" width="70px"></range-input>γ
+                                ]</span></div>
+                                <div>Calibrated Acceleration: <span id="accData">[
+                                    <range-input type="display" id="cal-acc-0" width="70px"></range-input>g, 
+                                    <range-input type="display" id="cal-acc-1" width="70px"></range-input>g, 
+                                    <range-input type="display" id="cal-acc-2" width="70px"></range-input>g
+                                ]</span></div>
+                                <div>Calibrated Angular Rotation: <span id="accData">[
+                                    <range-input type="display" id="cal-gyr-0" width="70px"></range-input>dps, 
+                                    <range-input type="display" id="cal-gyr-1" width="70px"></range-input>dps, 
+                                    <range-input type="display" id="cal-gyr-2" width="70px"></range-input>dps
+                                ]</span></div>
+                                <div>Orientation (Quaternion): [
+                                    <range-input type="display" id="orientation-qw" width="70px"></range-input> | 
+                                    <range-input type="display" id="orientation-qx" width="70px"></range-input>, 
+                                    <range-input type="display" id="orientation-qy" width="70px"></range-input>, 
+                                    <range-input type="display" id="orientation-qz" width="70px"></range-input>
+                                ]</div>
+                                <div>Roll: <range-input type="display" id="orientation-roll" width="70px"></range-input>°, 
+                                    Pitch: <range-input type="display" id="orientation-pitch" width="70px"></range-input>°, 
+                                    Yaw: <range-input type="display" id="orientation-yaw" width="70px"></range-input>°
+                                </div>
+                                <div>Position: [
+                                    <range-input type="display" id="position-x" width="70px"></range-input>m, 
+                                    <range-input type="display" id="position-y" width="70px"></range-input>m, 
+                                    <range-input type="display" id="position-z" width="70px"></range-input>m
+                                ]</div>
                             </div>
                             <b>Adc Data: </b>
                             <div class="dataGroup" id="adcCollapse">

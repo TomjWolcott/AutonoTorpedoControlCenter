@@ -76,6 +76,16 @@ class RangeInput extends HTMLElement {
 
         return Math.min(max, Math.max(min, value)).toFixed(fixed);
     }
+    setVal(value) {
+        if (typeof value === "number")
+            this.input[0].value = this.formatFloat(value);
+        else
+            this.input[0].value = value;
+    }
+
+    getVal() {
+        return parseFloat(this.input[0].value);
+    }
 
     formattingOptions() {
         return {

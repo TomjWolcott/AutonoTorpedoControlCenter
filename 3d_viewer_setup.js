@@ -44,10 +44,12 @@ function threejs_setup() {
     const axesHelperRev = new THREE.AxesHelper( -5 );
     scene.add( axesHelperRev );
 
-    // let dir = new THREE.Vector3(1, 1, 1);
-    // dir.normalize();
-    // const arrowHelper = new THREE.ArrowHelper(dir, new THREE.Vector3(0, 0, 0), 1, 0xffffff );
-    // scene.add( arrowHelper );
+    const arrowMAG = new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 0, 0), 2, 0xffffaa );
+    scene.add( arrowMAG );
+
+    const arrowACC = new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 0, 0), 2, 0xaaffff );
+    scene.add( arrowACC );
+
     var AT;
     loader.load( 'assets/AutonomousTorpedo.glb', function ( gltf ) {
         AT = gltf.scene;
@@ -64,26 +66,39 @@ function threejs_setup() {
         controls.update();
         renderer.render( scene, camera );
 
+        arrowMAG.setDirection(new THREE.Vector3(-mag[1], -mag[2], -mag[0]).normalize());
+
+        arrowACC.setDirection(new THREE.Vector3(acc[0], acc[2], -acc[1]).normalize());
+
         if (typeof AT != "undefined") {
-            AT.setRotationFromEuler(new THREE.Euler( 0, 0, 0, 'XYZ' ));
+            // AT.setRotationFromEuler(new THREE.Euler( 0, 0, 0, 'XYZ' ));
 
-            let magv = new THREE.Vector3(-mag[0], mag[2], mag[1]);
-            let accv = new THREE.Vector3(-acc[1], acc[2], acc[0]);
+            // let magv = new THREE.Vector3(-mag[0], mag[2], mag[1]);
+            // let accv = new THREE.Vector3(-acc[1], acc[2], acc[0]);
 
-            magv.normalize();
-            accv.normalize();
+            // magv.normalize();
+            // accv.normalize();
 
-            let y_rot = Math.atan2(accv.x, accv.y);
-            let x_rot = Math.atan2(accv.z, accv.y);
+            // let y_rot = Math.atan2(accv.x, accv.y);
+            // let x_rot = Math.atan2(accv.z, accv.y);
 
-            magv = magv.applyAxisAngle( new THREE.Vector3(0, 0, 1), -y_rot);
-            magv = magv.applyAxisAngle( new THREE.Vector3(1, 0, 0), -x_rot);
+            // magv = magv.applyAxisAngle( new THREE.Vector3(0, 0, 1), -y_rot);
+            // magv = magv.applyAxisAngle( new THREE.Vector3(1, 0, 0), -x_rot);
 
-            let z_rot = Math.atan2(magv.z, magv.x);
+            // let z_rot = Math.atan2(magv.z, magv.x);
 
-            AT.rotateY(z_rot);
-            AT.rotateZ(y_rot);
-            AT.rotateX(x_rot);
+            // AT.rotateY(z_rot);
+            // AT.rotateZ(y_rot);
+            // AT.rotateX(x_rot);
+
+            let threejsOri = new THREE.Quaternion(quat.x, quat.y, quat.z, quat.w);
+            let correctionQuat = new THREE.Quaternion(-0.707, 0, 0, 0.707);
+            correctionQuat.multiply(threejsOri);
+
+            AT.setRotationFromQuaternion(new THREE.Quaternion());
+            AT.applyQuaternion(correctionQuat);
+            AT.rotateX(Math.PI/2);
+
         }
     }
     renderer.setAnimationLoop( animate );

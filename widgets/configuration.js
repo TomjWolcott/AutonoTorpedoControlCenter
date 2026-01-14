@@ -48,6 +48,8 @@ configs[UPLOADED_CONFIG_ID] = window.structuredClone(configs[DEFAULT_CONFIG_ID])
 setHtmlFromConfiguration(configs[CURRENT_CONFIG_ID]);
 
 function setHtmlFromConfiguration(configObj, prefix = "", readonly = false) {
+    if (configObj == null) return;
+
     if (typeof configObj == "object") {
         if ("readonly" in configObj && configObj["readonly"]) readonly = true;
 
@@ -97,7 +99,7 @@ function setConfigDropdownOptions() {
 
     for (let configId in configs) {
         if (configId == CURRENT_CONFIG_ID) continue;
-        if (configId == UPLOADED_CONFIG_ID && controlCenterState.state == NOT_CONNECTED) continue;
+        // if (configId == UPLOADED_CONFIG_ID && controlCenterState.state == NOT_CONNECTED) continue;
 
         let option = $(`<option value="${configId}">${configId}${("readonly" in configs[configId] && configs[configId]["readonly"]) ? " (Read-Only)" : ""}</option>`);
         dropdown.append(option);
@@ -137,9 +139,20 @@ $("#btnSaveConfig").on("click", () => {
     setConfigDropdownOptions();
 });
 
-$("#btnLoadConfig").on("click", () => {
+$("#btnLoadConfig").on("click", async () => {
     let selectedConfigId = $("#configOptionsDatalist").val();
-    if (selectedConfigId in configs) {
+
+    if (selectedConfigId == UPLOADED_CONFIG_ID) {
+        await sendAction(controlCenterState.port, ACTION_IDS.SEND_CONFIG);
+
+        let msg = await recieveWait({isExpectedMessage: (msg) => msg.id == MESSAGE_IDS.SEND_CONFIG});
+        
+        configs[UPLOADED_CONFIG_ID] = msg.config;
+        configs[UPLOADED_CONFIG_ID].readonly = true;
+        configs[CURRENT_CONFIG_ID] = window.structuredClone(configs[UPLOADED_CONFIG_ID]);
+        configs[CURRENT_CONFIG_ID].readonly = false;
+        setHtmlFromConfiguration(configs[CURRENT_CONFIG_ID]);
+    } else if (selectedConfigId in configs) {
         configs[CURRENT_CONFIG_ID] = window.structuredClone(configs[selectedConfigId]);
         configs[CURRENT_CONFIG_ID].readonly = false;
 
