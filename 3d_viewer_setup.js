@@ -44,11 +44,11 @@ function threejs_setup() {
     const axesHelperRev = new THREE.AxesHelper( -5 );
     scene.add( axesHelperRev );
 
-    const arrowMAG = new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 0, 0), 2, 0xffffaa );
-    scene.add( arrowMAG );
+    // const arrowMAG = new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 0, 0), 2, 0xffffaa );
+    // scene.add( arrowMAG );
 
-    const arrowACC = new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 0, 0), 2, 0xaaffff );
-    scene.add( arrowACC );
+    // const arrowACC = new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 0, 0), 2, 0xaaffff );
+    // scene.add( arrowACC );
 
     var AT;
     loader.load( 'assets/AutonomousTorpedo.glb', function ( gltf ) {
@@ -66,9 +66,9 @@ function threejs_setup() {
         controls.update();
         renderer.render( scene, camera );
 
-        arrowMAG.setDirection(new THREE.Vector3(-mag[1], -mag[2], -mag[0]).normalize());
+        // arrowMAG.setDirection(new THREE.Vector3(-mag[1], -mag[2], -mag[0]).normalize());
 
-        arrowACC.setDirection(new THREE.Vector3(acc[0], acc[2], -acc[1]).normalize());
+        // arrowACC.setDirection(new THREE.Vector3(acc[0], acc[2], -acc[1]).normalize());
 
         if (typeof AT != "undefined") {
             // AT.setRotationFromEuler(new THREE.Euler( 0, 0, 0, 'XYZ' ));
