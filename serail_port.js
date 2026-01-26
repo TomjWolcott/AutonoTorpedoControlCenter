@@ -285,7 +285,7 @@ function IEEE754ToFloat(bytes, reverse=true) {
 const ACTION_IDS = {
     NOOP: 0,
     CALIBRATION_SETTINGS: 1,
-    SPIN_MOTOR: 2,
+    SET_MOTOR_SPEEDS: 2,
     SEND_CONFIG: 3,
     CALIBRATION_MSG: 4
 }
@@ -325,12 +325,12 @@ async function sendAction(port, action, actionData = null) {
                 actionData.dataCollectTimeMs & 0xFF
             ]);
             break;
-        case (ACTION_IDS.SPIN_MOTOR):
+        case (ACTION_IDS.SET_MOTOR_SPEEDS):
             data = new Uint8Array([...MESSAGE_HEADER, 11, MESSAGE_IDS.ACTION, action,
-                floatToUint8((actionData.speed0 + 1) * 128),
-                floatToUint8((actionData.speed1 + 1) * 128),
-                floatToUint8((actionData.speed2 + 1) * 128),
-                floatToUint8((actionData.speed3 + 1) * 128),
+                floatToUint8((actionData.speeds[0] + 1) * 127),
+                floatToUint8((actionData.speeds[1] + 1) * 127),
+                floatToUint8((actionData.speeds[2] + 1) * 127),
+                floatToUint8((actionData.speeds[3] + 1) * 127),
             ]);
             break;
         case (ACTION_IDS.CALIBRATION_MSG):
@@ -528,8 +528,8 @@ const DATA_SENT_BITFLAGS = {
     DEPTH_TEMP:   0x08,
     /** Data from the localization algorithm, stored as [x|x|y|y|z|z|roll|roll|pitch|pitch|yaw|yaw] */
     LOCALIZED_DATA: 0x10,
-    /** Data from the MS5837, stored as [pres|pres|temp|temp] */
-    AIR_PRESSURE: 0x20,
+    /** Data from the motors, stored as [TL_A|TL_A|TR_A|TR_A|BL_A|BL_A|BR_A|BR_A|TL_V|TL_V|TR_V|TR_V|BL_V|BL_V|BR_V|BR_V] */
+    MOTOR_DATA: 0x20,
     /** Other data, stored as [timestamp_ms|timestamp_ms|timestamp_ms|timestamp_ms|data_refresh_rate|data_refresh_rate|firmware_major|firmware_minor]*/
     OTHER_DATA:  0x40,
 };
@@ -616,6 +616,24 @@ function convertData(flags, data) {
             };
 
             flags &= (0xFF ^ DATA_SENT_BITFLAGS.LOCALIZED_DATA);
+        } else if (flags & DATA_SENT_BITFLAGS.MOTOR_DATA) {
+            obj.motorData = {
+                motorCurrent: [
+                    8.0 * ((data[0] << 8) | data[1]) / 65536.0,
+                    8.0 * ((data[2] << 8) | data[3]) / 65536.0,
+                    8.0 * ((data[4] << 8) | data[5]) / 65536.0,
+                    8.0 * ((data[6] << 8) | data[7]) / 65536.0,
+                ],
+                motorVoltage: [
+                    8.0 * ((data[8] << 8) | data[9]) / 65536.0,
+                    8.0 * ((data[10] << 8) | data[11]) / 65536.0,
+                    8.0 * ((data[12] << 8) | data[13]) / 65536.0,
+                    8.0 * ((data[14] << 8) | data[15]) / 65536.0,
+                ]
+            };
+
+            flags &= (0xFF ^ DATA_SENT_BITFLAGS.MOTOR_DATA);
+            data = data.slice(16);
         } else if (flags & DATA_SENT_BITFLAGS.OTHER_DATA) {
             obj.otherData = {
                 timestamp_s: ((data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3]) / 1000000.0,

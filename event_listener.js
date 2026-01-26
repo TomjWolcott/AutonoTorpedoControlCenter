@@ -146,7 +146,12 @@ async function messageHandler() {
                 quat = msg.localization.orientation;
             }
 
-            if (("mag" in msg) && ("accGyro" in msg) && ("adcData" in msg) && ("otherData" in msg)  && ("localization" in msg) && (msg.mag[0]*msg.mag[0] + msg.mag[1]*msg.mag[1] + msg.mag[2]*msg.mag[2])**0.5 < 1000000) {
+            if ("motorData" in msg) {
+                setAllDisplays(msg.motorData.motorVoltage, msg.motorData.motorCurrent);
+                // console.log([...msg.motorData.motorCurrent], [...msg.motorData.motorVoltage]);
+            }
+
+            if (("mag" in msg) && ("accGyro" in msg) && ("adcData" in msg) && ("otherData" in msg)  && ("localization" in msg) && ("motorData" in msg) && (msg.mag[0]*msg.mag[0] + msg.mag[1]*msg.mag[1] + msg.mag[2]*msg.mag[2])**0.5 < 1000000) {
                 controlCenterState.data.t.push(msg.otherData.timestamp_s);
                 controlCenterState.data.magX.push(msg.mag[0]);
                 controlCenterState.data.magY.push(msg.mag[1]);
@@ -165,6 +170,21 @@ async function messageHandler() {
                 controlCenterState.data.yaw.push(msg.localization.euler.yaw);
                 controlCenterState.data.pitch.push(msg.localization.euler.pitch);
                 controlCenterState.data.roll.push(msg.localization.euler.roll);
+
+                controlCenterState.data.motor_voltage_tl.push(msg.motorData.motorVoltage[0]);
+                controlCenterState.data.motor_voltage_tr.push(msg.motorData.motorVoltage[1]);
+                controlCenterState.data.motor_voltage_bl.push(msg.motorData.motorVoltage[2]);
+                controlCenterState.data.motor_voltage_br.push(msg.motorData.motorVoltage[3]);
+
+                controlCenterState.data.motor_current_tl.push(msg.motorData.motorCurrent[0]);
+                controlCenterState.data.motor_current_tr.push(msg.motorData.motorCurrent[1]);
+                controlCenterState.data.motor_current_bl.push(msg.motorData.motorCurrent[2]);
+                controlCenterState.data.motor_current_br.push(msg.motorData.motorCurrent[3]);
+
+                controlCenterState.data.motor_power_tl.push(msg.motorData.motorVoltage[0] * msg.motorData.motorCurrent[0]);
+                controlCenterState.data.motor_power_tr.push(msg.motorData.motorVoltage[1] * msg.motorData.motorCurrent[1]);
+                controlCenterState.data.motor_power_bl.push(msg.motorData.motorVoltage[2] * msg.motorData.motorCurrent[2]);
+                controlCenterState.data.motor_power_br.push(msg.motorData.motorVoltage[3] * msg.motorData.motorCurrent[3]);
 
                 updatePlot(controlCenterState.data.t.length - 1);
             }

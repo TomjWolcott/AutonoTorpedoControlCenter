@@ -93,7 +93,8 @@
             padding-right: 5px;
         }
     </style>
-    <script type="module" src="components.js"></script>
+    <script type="module" src="components/RangeInput.js"></script>
+    <script type="module" src="components/MotorInput.js"></script>
 </head>
 <body style="height: 100vh; margin: 0; padding: 0; overflow: hidden;">
     <div class="h-100 p-3 m-0 d-flex flex-column">
@@ -273,6 +274,45 @@
                     <div class="accordion-item">
                         <h3 class="accordion-header">
                         <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#accordion-log" aria-expanded="true" aria-controls="accordion-log">
+                            Motor Input Tester
+                        </button>
+                        </h3>
+                        <div id="accordion-motorInputTester" class="accordion-collapse collapse show" data-bs-parent="#accordionExample">
+                            <div class="d-flex flex-column accordion-body">
+                                <div class="d-flex flex-row">
+                                    <div class="d-flex flex-column" style="border-right: 1px solid white; padding-right: 10px; margin-right: 10px;">
+                                        <h5 style="margin-left: 10px">Direct inputs:</h5>
+                                        <div class="d-flex flex-row">
+                                            <motor-input class="tester-motor-input" id="motor-tl" label="TL"></motor-input>
+                                            <motor-input class="tester-motor-input" id="motor-tr" label="TR"></motor-input>
+                                        </div>
+                                        <div class="d-flex flex-row">
+                                            <motor-input class="tester-motor-input" id="motor-bl" label="BL"></motor-input>
+                                            <motor-input class="tester-motor-input" id="motor-br" label="BR"></motor-input>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex flex-column">
+                                        <h5 style="margin-left: 10px;">Forward/Roll/Pitch/Yaw inputs:</h5>
+                                        <div class="d-flex flex-row">
+                                            <motor-input class="tester-motor-input" id="motor-forward" label="Forward"></motor-input>
+                                            <motor-input class="tester-motor-input" id="motor-pitch" label="Pitch"></motor-input>
+                                        </div>
+                                        <div class="d-flex flex-row">
+                                            <motor-input class="tester-motor-input" id="motor-roll" label="Roll"></motor-input>
+                                            <motor-input class="tester-motor-input" id="motor-yaw" label="Yaw"></motor-input>
+                                        </div>
+                                    </div>
+                                </div>
+                                <hr>
+                                <button id="zeroOutMotorInputs" type="button" class="btn btn-primary mb-3">Set to zero</button>
+                            </div>
+                        </div>
+                    </div>
+                </div> <!-- MOTOR INPUT TESTER -->
+                <div class="accordion state-based show-setup show-active">
+                    <div class="accordion-item">
+                        <h3 class="accordion-header">
+                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#accordion-log" aria-expanded="true" aria-controls="accordion-log">
                             Log
                         </button>
                         </h3>
@@ -446,6 +486,7 @@
     <script src="widgets/plotter.js"></script>
     <script src="widgets/configuration.js"></script>
     <script src="widgets/calibration.js"></script>
+    <script src="widgets/motorInput.js"></script>
     <script src="3d_viewer_setup.js" type="module"></script>
     <script src="event_listener.js"></script>
 </body>

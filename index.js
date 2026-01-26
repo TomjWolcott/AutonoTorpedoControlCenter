@@ -27,6 +27,18 @@ controlCenterState = {
         yaw: [],
         pitch: [],
         roll: [],
+        motor_voltage_tl: [],
+        motor_current_tl: [],
+        motor_power_tl: [],
+        motor_voltage_tr: [],
+        motor_current_tr: [],
+        motor_power_tr: [],
+        motor_voltage_bl: [],
+        motor_current_bl: [],
+        motor_power_bl: [],
+        motor_voltage_br: [],
+        motor_current_br: [],
+        motor_power_br: [],
     }
 };
 

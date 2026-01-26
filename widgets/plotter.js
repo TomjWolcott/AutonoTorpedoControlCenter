@@ -25,7 +25,19 @@ const axisSettings = {
     pitch: { label: "Pitch (°)" },
     roll: { label: "Roll (°)" },
     pressure: { label: "Pressure (Pa)" },
-    temperature: { label: "Temperature (°C)" }
+    temperature: { label: "Temperature (°C)" },
+    motor_voltage_tl: { label: "Top Left Motor Voltage (V)" },
+    motor_current_tl: { label: "Top Left Motor Current (A)" },
+    motor_power_tl: { label: "Top Left Motor Power (W)" },
+    motor_voltage_tr: { label: "Top Right Motor Voltage (V)" },
+    motor_current_tr: { label: "Top Right Motor Current (A)" },
+    motor_power_tr: { label: "Top Right Motor Power (W)" },
+    motor_voltage_bl: { label: "Bottom Left Motor Voltage (V)" },
+    motor_current_bl: { label: "Bottom Left Motor Current (A)" },
+    motor_power_bl: { label: "Bottom Left Motor Power (W)" },
+    motor_voltage_br: { label: "Bottom Right Motor Voltage (V)" },
+    motor_current_br: { label: "Bottom Right Motor Current (A)" },
+    motor_power_br: { label: "Bottom Right Motor Power (W)" },
 }
 
 const MAX_DATA_POINTS = 500;

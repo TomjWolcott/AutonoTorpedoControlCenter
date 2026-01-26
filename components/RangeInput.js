@@ -99,6 +99,7 @@ class RangeInput extends HTMLElement {
 
 document.addEventListener("mousemove", (e) => {
     if (activeRangeInput != null) {
+        console.log("hi", activeRangeInput);
         let {
             lastPosX,
             rangeInput,
