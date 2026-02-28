@@ -151,7 +151,8 @@ class MotorInput extends HTMLElement {
         return parseFloat(this.shadowRoot.getElementById('motor-value').input[0].value);
     }
 
-    set_displays(voltage, current) {
+    set_displays(voltage, current, input) {
+        this.input = input;
         this.shadowRoot.getElementById('motor-voltage').input[0].value = voltage.toFixed(2);
         this.shadowRoot.getElementById('motor-current').input[0].value = current.toFixed(2);
         this.shadowRoot.getElementById('motor-power').input[0].value = (voltage * current).toFixed(2);

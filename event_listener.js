@@ -65,6 +65,7 @@ async function messageHandler() {
 
                 $("#dataRefreshRateInput")[0].input[0].value = msg.otherData.dataRefreshRate_hz.toFixed(1);
                 $("#firmwareVersionInput")[0].input[0].value = msg.otherData.firmwareVersion;
+                $("#freeHeap")[0].input[0].value = msg.otherData.freeHeap;
             }
 
             if ("adcData" in msg) {
@@ -147,11 +148,11 @@ async function messageHandler() {
             }
 
             if ("motorData" in msg) {
-                setAllDisplays(msg.motorData.motorVoltage, msg.motorData.motorCurrent);
+                setAllDisplays(msg.motorData.motorVoltage, msg.motorData.motorCurrent, msg.motorData.motorInput);
                 // console.log([...msg.motorData.motorCurrent], [...msg.motorData.motorVoltage]);
             }
 
-            if (("mag" in msg) && ("accGyro" in msg) && ("adcData" in msg) && ("otherData" in msg)  && ("localization" in msg) && ("motorData" in msg) && (msg.mag[0]*msg.mag[0] + msg.mag[1]*msg.mag[1] + msg.mag[2]*msg.mag[2])**0.5 < 1000000) {
+            if (("mag" in msg) && ("accGyro" in msg) && ("adcData" in msg) && ("otherData" in msg)  && ("localization" in msg) && ("motorData" in msg) && ("otherData" in msg) && (msg.mag[0]*msg.mag[0] + msg.mag[1]*msg.mag[1] + msg.mag[2]*msg.mag[2])**0.5 < 1000000) {
                 controlCenterState.data.t.push(msg.otherData.timestamp_s);
                 controlCenterState.data.magX.push(msg.mag[0]);
                 controlCenterState.data.magY.push(msg.mag[1]);
@@ -186,6 +187,8 @@ async function messageHandler() {
                 controlCenterState.data.motor_power_bl.push(msg.motorData.motorVoltage[2] * msg.motorData.motorCurrent[2]);
                 controlCenterState.data.motor_power_br.push(msg.motorData.motorVoltage[3] * msg.motorData.motorCurrent[3]);
 
+                controlCenterState.data.free_heap_bytes.push(msg.otherData.freeHeap);
+
                 updatePlot(controlCenterState.data.t.length - 1);
             }
         } else if (msg.id == MESSAGE_IDS.PING_WITH_MS) {
@@ -196,8 +199,13 @@ async function messageHandler() {
 }
 
 function onMessage(msg) {
+
 }
 
 document.getElementById("send-ping-btn").onclick = async () => {
     sendPing(controlCenterState.port);
+}
+
+document.getElementById("send-vroll-pid-btn").onclick = async () => {
+    await sendAction(controlCenterState.port, ACTION_IDS.EDIT_CONTROL_LOOPS);
 }

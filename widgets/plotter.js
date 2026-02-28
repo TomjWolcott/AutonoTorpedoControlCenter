@@ -38,6 +38,7 @@ const axisSettings = {
     motor_voltage_br: { label: "Bottom Right Motor Voltage (V)" },
     motor_current_br: { label: "Bottom Right Motor Current (A)" },
     motor_power_br: { label: "Bottom Right Motor Power (W)" },
+    free_heap_bytes: { label: "#Bytes Free on the Heap (Bytes)" }
 }
 
 const MAX_DATA_POINTS = 500;
@@ -104,6 +105,7 @@ $("#plotDimDropdown").on("change", () => {
         initializePlot();
 
     } else {
+        plotSettings.currentPlot = null;
         plotArea.append(`<div class="d-flex justify-content-center align-items-center" style="width:100%;height:100%;">No plot selected</div>`);
         $(".plot-axes-container").hide();
         $(".plot-axis-3-container").hide();

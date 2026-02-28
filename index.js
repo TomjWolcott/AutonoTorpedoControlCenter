@@ -39,6 +39,7 @@ controlCenterState = {
         motor_voltage_br: [],
         motor_current_br: [],
         motor_power_br: [],
+        free_heap_bytes: []
     }
 };
 

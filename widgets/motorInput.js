@@ -32,6 +32,7 @@ const MOTOR_INPUT = {
 
 directInputs = [0, 0, 0, 0];
 frpyInputs = [0, 0, 0, 0];
+lastSetInputs = 0;
 
 $(".tester-motor-input").on("change", async (e) => {
     switch (e.target.id) {
@@ -91,25 +92,33 @@ $(".tester-motor-input").on("change", async (e) => {
     $(`#${MOTOR_INPUT.BR}`)[0].input = directInputs[3];
     
     // console.log(frpyInputs, directInputs, e);
+    
 
     await sendAction(controlCenterState.port, ACTION_IDS.SET_MOTOR_SPEEDS, {
         speeds: directInputs
     });
+
+    lastSetInputs = Date.now();
 })
 
-function setAllDisplays(voltages, currents) {
-    $(`#${MOTOR_INPUT.TL}`)[0].set_displays(voltages[0], currents[0]);
-    $(`#${MOTOR_INPUT.TR}`)[0].set_displays(voltages[1], currents[1]);
-    $(`#${MOTOR_INPUT.BL}`)[0].set_displays(voltages[2], currents[2]);
-    $(`#${MOTOR_INPUT.BR}`)[0].set_displays(voltages[3], currents[3]);
+function setAllDisplays(voltages, currents, inputs) {
+    if (Date.now() - lastSetInputs < 1000) return;
+
+    $(`#${MOTOR_INPUT.TL}`)[0].set_displays(voltages[0], currents[0], inputs[0]);
+    $(`#${MOTOR_INPUT.TR}`)[0].set_displays(voltages[1], currents[1], inputs[1]);
+    $(`#${MOTOR_INPUT.BL}`)[0].set_displays(voltages[2], currents[2], inputs[2]);
+    $(`#${MOTOR_INPUT.BR}`)[0].set_displays(voltages[3], currents[3], inputs[3]);
 
     frpyVoltages = directToFrpy(voltages);
     frpyCurrents = directToFrpy(currents);
+    frpyInputs = directToFrpy(inputs);
 
-    $(`#${MOTOR_INPUT.FORWARD}`)[0].set_displays(frpyVoltages[0], frpyCurrents[0]);
-    $(`#${MOTOR_INPUT.ROLL}`)[0].set_displays(frpyVoltages[1], frpyCurrents[1]);
-    $(`#${MOTOR_INPUT.PITCH}`)[0].set_displays(frpyVoltages[2], frpyCurrents[2]);
-    $(`#${MOTOR_INPUT.YAW}`)[0].set_displays(frpyVoltages[3], frpyCurrents[3]);
+    $(`#${MOTOR_INPUT.FORWARD}`)[0].set_displays(frpyVoltages[0], frpyCurrents[0], frpyInputs[0]);
+    $(`#${MOTOR_INPUT.ROLL}`)[0].set_displays(frpyVoltages[1], frpyCurrents[1], frpyInputs[1]);
+    $(`#${MOTOR_INPUT.PITCH}`)[0].set_displays(frpyVoltages[2], frpyCurrents[2], frpyInputs[2]);
+    $(`#${MOTOR_INPUT.YAW}`)[0].set_displays(frpyVoltages[3], frpyCurrents[3], frpyInputs[3]);
+
+
 }
 
 $("#zeroOutMotorInputs").on("click", () => {

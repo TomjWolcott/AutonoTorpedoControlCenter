@@ -287,7 +287,8 @@ const ACTION_IDS = {
     CALIBRATION_SETTINGS: 1,
     SET_MOTOR_SPEEDS: 2,
     SEND_CONFIG: 3,
-    CALIBRATION_MSG: 4
+    CALIBRATION_MSG: 4,
+    EDIT_CONTROL_LOOPS: 5
 }
 
 const CALIBRATION_TYPES = {
@@ -339,6 +340,9 @@ async function sendAction(port, action, actionData = null) {
             ]);
             break;
         case (ACTION_IDS.SEND_CONFIG):
+            data = new Uint8Array([...MESSAGE_HEADER, 7, MESSAGE_IDS.ACTION, action]);
+            break;
+        case (ACTION_IDS.EDIT_CONTROL_LOOPS):
             data = new Uint8Array([...MESSAGE_HEADER, 7, MESSAGE_IDS.ACTION, action]);
             break;
     }
@@ -629,20 +633,32 @@ function convertData(flags, data) {
                     8.0 * ((data[10] << 8) | data[11]) / 65536.0,
                     8.0 * ((data[12] << 8) | data[13]) / 65536.0,
                     8.0 * ((data[14] << 8) | data[15]) / 65536.0,
+                ],
+                motorInput: [
+                    2.0 * ((data[16] << 8) | data[17]) / 65536.0 - 1.0,
+                    2.0 * ((data[18] << 8) | data[19]) / 65536.0 - 1.0,
+                    2.0 * ((data[20] << 8) | data[21]) / 65536.0 - 1.0,
+                    2.0 * ((data[22] << 8) | data[23]) / 65536.0 - 1.0,
                 ]
             };
 
             flags &= (0xFF ^ DATA_SENT_BITFLAGS.MOTOR_DATA);
-            data = data.slice(16);
+            data = data.slice(24);
         } else if (flags & DATA_SENT_BITFLAGS.OTHER_DATA) {
             obj.otherData = {
-                timestamp_s: ((data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3]) / 1000000.0,
-                dataRefreshRate_hz: ((data[4] << 8) | data[5]),
-                firmwareVersion: `V${data[6]}.${data[7]}`
+                timestamp_s: (
+                    (data[0] << 24) | (data[1] << 24) | (data[2] << 24) | (data[3] << 24) | 
+                    (data[4] << 24) | (data[5] << 16) | (data[6] << 8) | data[7]
+                ) / 1000000.0,
+                dataRefreshRate_hz: ((data[8] << 8) | data[9]),
+                firmwareVersion: `V${data[10]}.${data[11]}`,
+                freeHeap: (
+                    (data[12] << 24) | (data[13] << 16) | (data[14] << 8) | data[15]
+                ),
             };
 
             flags &= (0xFF ^ DATA_SENT_BITFLAGS.OTHER_DATA);
-            data = data.slice(8);
+            data = data.slice(16);
         } else {
             break;
         }
