@@ -172,6 +172,12 @@
             z-index: 10;
             border: var(--plus-thickness) solid var(--grid-color);
         }
+
+        #contextMenu {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+        }
     </style>
     <script type="module" src="components.js"></script>
     <script type="module">
@@ -181,7 +187,7 @@
 </head>
 <body style="height: 100vh; margin: 0; padding: 0; overflow: hidden; display:flex; flex-direction: row;">
     <div id="tweakpane-tabs" style="width: 200px;"></div>
-    <div id="tweakpane-windows" style="flex-grow: 1; height: 100vh; overflow: auto; position: relative;">
+    <div id="widgetArea" style="flex-grow: 1; height: 100vh; overflow: auto; position: relative;">
         <div id="titleCard" class="backgrounds">
             <span style="font-size: 40px">Autonomous Torpedo Control Center</span>
         </div>
@@ -189,9 +195,11 @@
         <div id="backgroundPlusHideGrid" class="backgrounds"></div>
         <div id="backgroundDotGrid" class="backgrounds"></div>
     </div>
+    <div id="contextMenu"></div>
     <!-- CODE INCLUDES -->
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="tweakpane-integration.js"></script>
 </body>
 </html>
